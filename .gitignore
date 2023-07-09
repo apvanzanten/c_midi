@@ -50,3 +50,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+bld
+.vscode
+bld_debug
+bld_release
