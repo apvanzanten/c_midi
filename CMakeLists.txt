@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24) # this is the version I use, it may well be compatible with lower ones
-project(c_facilities)
+project(c_midi)
 
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 set(TST_DIR ${PROJECT_SOURCE_DIR}/tst)
@@ -65,10 +65,13 @@ endif()
 
 add_library(note ${SRC_DIR}/note.c)
 
+add_library(message ${SRC_DIR}/message.c)
+target_link_libraries(message note)
+
 
 # --- tests ---
 
-if (DEBUG)
+# if (DEBUG) # For some reason cmake won't rebuild on test changes if this if statement is here :(
     enable_testing()
 
     function(AddTest TEST_NAME TEST_SOURCE #[[test dependencies...]])
@@ -80,7 +83,7 @@ if (DEBUG)
         add_test(${TEST_NAME} ${TEST_NAME})
     endfunction()
 
-    AddTest(message_test message.test.c note)
+    AddTest(message_test message.test.c message note)
     AddTest(note_test note.test.c note)
 
-endif()
+# endif()

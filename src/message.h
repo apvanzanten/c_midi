@@ -48,4 +48,25 @@ typedef struct MIDI_Message {
   } data;
 } MIDI_Message;
 
+static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
+  switch(t) {
+  case MIDI_MSG_TYPE_NOTE_OFF: return "NOTE_OFF";
+  case MIDI_MSG_TYPE_NOTE_ON: return "NOTE_ON";
+  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return "AFTERTOUCH_POLY";
+  case MIDI_MSG_TYPE_CONTROL_CHANGE: return "CONTROL_CHANGE";
+  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return "PROGRAM_CHANGE";
+  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return "AFTERTOUCH_MONO";
+  case MIDI_MSG_TYPE_PITCH_BEND: return "PITCH_BEND";
+  case MIDI_MSG_TYPE_MISC: return "MISC";
+  }
+  return "UNKNOWN";
+}
+
+int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
+int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
+int MIDI_control_change_msg_to_str_buffer(char * str, int max_len, MIDI_ControlChange msg);
+int MIDI_pitch_bend_msg_to_str_buffer(char * str, int max_len, MIDI_PitchBend msg);
+
+int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
+
 #endif
