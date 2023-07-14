@@ -68,6 +68,8 @@ add_library(note ${SRC_DIR}/note.c)
 add_library(message ${SRC_DIR}/message.c)
 target_link_libraries(message note)
 
+add_library(parser ${SRC_DIR}/parser.c)
+target_link_libraries(parser note message log)
 
 # --- tests ---
 
@@ -85,5 +87,6 @@ target_link_libraries(message note)
 
     AddTest(message_test message.test.c message note)
     AddTest(note_test note.test.c note)
+    AddTest(parser_test parser.test.c parser message note)
 
 # endif()
