@@ -1,2 +1,3 @@
 # c_midi
-midi in c
+
+Basic midi (1) parser in C.
