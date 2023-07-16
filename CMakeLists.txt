@@ -3,7 +3,7 @@ project(c_midi)
 
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 set(TST_DIR ${PROJECT_SOURCE_DIR}/tst)
-set(INC_DIR ${PROJECT_SOURCE_DIR}/inc)
+set(INC_DIR ${PROJECT_SOURCE_DIR}/inc/cmidi)
 set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
 
 set(CMAKE_C_STANDARD 11)
