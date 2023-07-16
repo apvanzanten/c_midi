@@ -98,10 +98,69 @@ static Result tst_to_string(void) {
   return r;
 }
 
+static Result tst_to_string_short(void) {
+  Result r = PASS;
+
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI:OFF{A4,100}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
+                                                              .data.note_off = {.note     = MIDI_NOTE_A_4,
+                                                                                .velocity = 100}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI:ON{D5,27}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
+                                                              .data.note_on = {.note     = MIDI_NOTE_D_5,
+                                                                               .velocity = 27}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI:CC{EFFECT1,101}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type                = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                                              .data.control_change = {.control = MIDI_CTRL_EFFECT1,
+                                                                                      .value   = 101}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI:PB{-1023}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
+                                                              .data.pitch_bend = {.value = -1023}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_size,
       tst_to_string,
+      tst_to_string_short,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
