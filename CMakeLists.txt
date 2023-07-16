@@ -3,6 +3,7 @@ project(c_midi)
 
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 set(TST_DIR ${PROJECT_SOURCE_DIR}/tst)
+set(INC_DIR ${PROJECT_SOURCE_DIR}/inc)
 set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
 
 set(CMAKE_C_STANDARD 11)
@@ -62,6 +63,8 @@ if (HAS_CPPCHECK)
 endif()
 
 # --- libraries ---
+
+include_directories(${INC_DIR})
 
 add_library(note ${SRC_DIR}/note.c)
 
