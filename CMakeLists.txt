@@ -76,7 +76,7 @@ target_link_libraries(parser note message log)
 
 # --- tests ---
 
-# if (DEBUG) # For some reason cmake won't rebuild on test changes if this if statement is here :(
+if (DEBUG) # For some reason cmake won't rebuild on test changes if this if statement is here :(
     enable_testing()
 
     function(AddTest TEST_NAME TEST_SOURCE #[[test dependencies...]])
@@ -92,4 +92,4 @@ target_link_libraries(parser note message log)
     AddTest(note_test note.test.c note)
     AddTest(parser_test parser.test.c parser message note)
 
-# endif()
+endif()
