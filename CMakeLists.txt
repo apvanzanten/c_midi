@@ -66,13 +66,13 @@ endif()
 
 include_directories(${INC_DIR})
 
-add_library(note ${SRC_DIR}/note.c)
+add_library(midi_note ${SRC_DIR}/note.c)
 
-add_library(message ${SRC_DIR}/message.c)
-target_link_libraries(message note)
+add_library(midi_message ${SRC_DIR}/message.c)
+target_link_libraries(midi_message midi_note)
 
-add_library(parser ${SRC_DIR}/parser.c)
-target_link_libraries(parser note message log)
+add_library(midi_parser ${SRC_DIR}/parser.c)
+target_link_libraries(midi_parser midi_note midi_message log)
 
 # --- tests ---
 
@@ -88,8 +88,8 @@ if (DEBUG) # For some reason cmake won't rebuild on test changes if this if stat
         add_test(${TEST_NAME} ${TEST_NAME})
     endfunction()
 
-    AddTest(message_test message.test.c message note)
-    AddTest(note_test note.test.c note)
-    AddTest(parser_test parser.test.c parser message note)
+    AddTest(message_test message.test.c midi_message midi_note)
+    AddTest(note_test note.test.c midi_note)
+    AddTest(parser_test parser.test.c midi_parser midi_message midi_note)
 
 endif()
