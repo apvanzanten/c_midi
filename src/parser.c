@@ -71,8 +71,14 @@ STAT_Val MIDI_parser_init(MIDI_Parser * restrict parser, MIDI_Channel channel) {
 STAT_Val MIDI_parse_byte(MIDI_Parser * restrict parser, uint8_t byte) {
   if(parser == NULL) return LOG_STAT(STAT_ERR_ARGS, "parser pointer is NULL");
   if(!MIDI_parser_is_ready(parser)) return LOG_STAT(STAT_ERR_PRECONDITION, "parser not ready");
-  if(!is_supported(byte)) return OK;                                      // silently skip unsupported bytes
-  if(is_status(byte) && !is_on_channel(byte, parser->channel)) return OK; // silently skip bytes for other channels
+  if(!is_supported(byte)) return OK; // silently skip unsupported bytes
+
+  if(is_status(byte) && !is_on_channel(byte, parser->channel)) {
+    // regardless of what state we're in, if we get a message for another channel, we reset to init, as a new status
+    // message must come in to indicate we're back on the correct channel
+    parser->state = ST_INIT;
+    return OK;
+  }
 
   bool try_byte_again = false;
 

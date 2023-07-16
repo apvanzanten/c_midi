@@ -31,6 +31,9 @@
 #define TEST_CHANNEL      2
 #define TEST_CHANNEL_BITS (TEST_CHANNEL - 1)
 
+#define TO_BE_IGNORED_CHANNEL      3
+#define TO_BE_IGNORED_CHANNEL_BITS (TO_BE_IGNORED_CHANNEL - 1)
+
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
@@ -123,6 +126,8 @@ static Result tst_multiple_msgs(void * env) {
   Result        r      = PASS;
   MIDI_Parser * parser = (MIDI_Parser *)env;
 
+  printf("start test %s\n", __func__);
+
   const uint8_t status_bit = (1 << 7); // 0b1000'0000
 
   const uint8_t bytes[] = {
@@ -132,15 +137,20 @@ static Result tst_multiple_msgs(void * env) {
                                                                               MIDI_NOTE_A_3,     0,
                                                                               MIDI_NOTE_F_2,    29,
       status_bit | (MIDI_MSG_TYPE_NOTE_ON << 4)         | TEST_CHANNEL_BITS,  MIDI_NOTE_G_8,    20,
+      status_bit | (MIDI_MSG_TYPE_NOTE_ON << 4)         | TO_BE_IGNORED_CHANNEL_BITS,   MIDI_NOTE_A_3,    99, 
+                                                                                        MIDI_NOTE_A_4,    21, 
       status_bit | (MIDI_MSG_TYPE_NOTE_OFF << 4)        | TEST_CHANNEL_BITS,  MIDI_NOTE_D_5,    100,
                                                                               MIDI_NOTE_F_2,    29,
+      status_bit | (MIDI_MSG_TYPE_NOTE_ON << 4)         | TO_BE_IGNORED_CHANNEL_BITS,   MIDI_NOTE_G_3,    99, 
       status_bit | (MIDI_MSG_TYPE_CONTROL_CHANGE << 4)  | TEST_CHANNEL_BITS,  MIDI_CTRL_ATTACK_TIME,      29,
                                                                               MIDI_CTRL_CUTOFF_FREQUENCY, 99,
                                                                               MIDI_CTRL_EFFECT1,          20,
       status_bit | (MIDI_MSG_TYPE_NOTE_OFF << 4)        | TEST_CHANNEL_BITS,  MIDI_NOTE_G_8,    19,
+      status_bit | (MIDI_MSG_TYPE_CONTROL_CHANGE << 4)  | TO_BE_IGNORED_CHANNEL_BITS,   MIDI_CTRL_MOD_WHEEL,  29,
       status_bit | (MIDI_MSG_TYPE_CONTROL_CHANGE << 4)  | TEST_CHANNEL_BITS,  MIDI_CTRL_GENERAL_A,        101,
                                                                               MIDI_CTRL_GENERAL_A_LSB,    29,
       status_bit | (MIDI_MSG_TYPE_PITCH_BEND << 4)  | TEST_CHANNEL_BITS,  pitch_bend_lsb(8000), pitch_bend_msb(8000),
+      status_bit | (MIDI_MSG_TYPE_PITCH_BEND << 4)  | TO_BE_IGNORED_CHANNEL_BITS,  pitch_bend_lsb(-2), pitch_bend_msb(-2),
       status_bit | (MIDI_MSG_TYPE_PITCH_BEND << 4)  | TEST_CHANNEL_BITS,  pitch_bend_lsb(-5000), pitch_bend_msb(-5000),
                                                                           pitch_bend_lsb(0),     pitch_bend_msb(0),
                                                                           pitch_bend_lsb(5),     pitch_bend_msb(5),
@@ -188,32 +198,33 @@ static Result tst_multiple_msgs(void * env) {
     const MIDI_Message pop_res  = MIDI_parser_pop_msg(parser);
     EXPECT_EQ(&r, expect.type, peek_res.type);
     EXPECT_EQ(&r, expect.type, pop_res.type);
-    if(HAS_FAILED(&r)) return r;
 
-    switch(expect.type) {
-    case MIDI_MSG_TYPE_NOTE_ON:
-      EXPECT_EQ(&r, expect.data.note_on.note, peek_res.data.note_on.note);
-      EXPECT_EQ(&r, expect.data.note_on.velocity, peek_res.data.note_on.velocity);
-      EXPECT_EQ(&r, expect.data.note_on.note, pop_res.data.note_on.note);
-      EXPECT_EQ(&r, expect.data.note_on.velocity, pop_res.data.note_on.velocity);
-      break;
-    case MIDI_MSG_TYPE_NOTE_OFF:
-      EXPECT_EQ(&r, expect.data.note_off.note, peek_res.data.note_off.note);
-      EXPECT_EQ(&r, expect.data.note_off.velocity, peek_res.data.note_off.velocity);
-      EXPECT_EQ(&r, expect.data.note_off.note, pop_res.data.note_off.note);
-      EXPECT_EQ(&r, expect.data.note_off.velocity, pop_res.data.note_off.velocity);
-      break;
-    case MIDI_MSG_TYPE_CONTROL_CHANGE:
-      EXPECT_EQ(&r, expect.data.control_change.control, peek_res.data.control_change.control);
-      EXPECT_EQ(&r, expect.data.control_change.value, peek_res.data.control_change.value);
-      EXPECT_EQ(&r, expect.data.control_change.control, pop_res.data.control_change.control);
-      EXPECT_EQ(&r, expect.data.control_change.value, pop_res.data.control_change.value);
-      break;
-    case MIDI_MSG_TYPE_PITCH_BEND:
-      EXPECT_EQ(&r, expect.data.pitch_bend.value, peek_res.data.pitch_bend.value);
-      EXPECT_EQ(&r, expect.data.pitch_bend.value, pop_res.data.pitch_bend.value);
-      break;
-    default: EXPECT_FALSE(&r, true); break;
+    if(!HAS_FAILED(&r)) {
+      switch(expect.type) {
+      case MIDI_MSG_TYPE_NOTE_ON:
+        EXPECT_EQ(&r, expect.data.note_on.note, peek_res.data.note_on.note);
+        EXPECT_EQ(&r, expect.data.note_on.velocity, peek_res.data.note_on.velocity);
+        EXPECT_EQ(&r, expect.data.note_on.note, pop_res.data.note_on.note);
+        EXPECT_EQ(&r, expect.data.note_on.velocity, pop_res.data.note_on.velocity);
+        break;
+      case MIDI_MSG_TYPE_NOTE_OFF:
+        EXPECT_EQ(&r, expect.data.note_off.note, peek_res.data.note_off.note);
+        EXPECT_EQ(&r, expect.data.note_off.velocity, peek_res.data.note_off.velocity);
+        EXPECT_EQ(&r, expect.data.note_off.note, pop_res.data.note_off.note);
+        EXPECT_EQ(&r, expect.data.note_off.velocity, pop_res.data.note_off.velocity);
+        break;
+      case MIDI_MSG_TYPE_CONTROL_CHANGE:
+        EXPECT_EQ(&r, expect.data.control_change.control, peek_res.data.control_change.control);
+        EXPECT_EQ(&r, expect.data.control_change.value, peek_res.data.control_change.value);
+        EXPECT_EQ(&r, expect.data.control_change.control, pop_res.data.control_change.control);
+        EXPECT_EQ(&r, expect.data.control_change.value, pop_res.data.control_change.value);
+        break;
+      case MIDI_MSG_TYPE_PITCH_BEND:
+        EXPECT_EQ(&r, expect.data.pitch_bend.value, peek_res.data.pitch_bend.value);
+        EXPECT_EQ(&r, expect.data.pitch_bend.value, pop_res.data.pitch_bend.value);
+        break;
+      default: EXPECT_FALSE(&r, true); break;
+      }
     }
 
     if(HAS_FAILED(&r)) {
