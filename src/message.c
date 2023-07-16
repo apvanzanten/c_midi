@@ -135,8 +135,6 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 
   int len = 0;
 
-  if(len < max_len) len += snprintf(str, max_len, "MIDI:");
-
   if(len < max_len) {
     switch(msg.type) {
     case MIDI_MSG_TYPE_NOTE_OFF:

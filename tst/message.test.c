@@ -103,7 +103,7 @@ static Result tst_to_string_short(void) {
 
   {
     char       str[1024 + 1] = {0};
-    const char expect_str[]  = "MIDI:OFF{A4,100}";
+    const char expect_str[]  = "OFF{A4,100}";
     EXPECT_EQ(&r,
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
@@ -116,7 +116,7 @@ static Result tst_to_string_short(void) {
   }
   {
     char       str[1024 + 1] = {0};
-    const char expect_str[]  = "MIDI:ON{D5,27}";
+    const char expect_str[]  = "ON{D5,27}";
     EXPECT_EQ(&r,
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
@@ -129,7 +129,7 @@ static Result tst_to_string_short(void) {
   }
   {
     char       str[1024 + 1] = {0};
-    const char expect_str[]  = "MIDI:CC{EFFECT1,101}";
+    const char expect_str[]  = "CC{EFFECT1,101}";
     EXPECT_EQ(&r,
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
@@ -142,7 +142,7 @@ static Result tst_to_string_short(void) {
   }
   {
     char       str[1024 + 1] = {0};
-    const char expect_str[]  = "MIDI:PB{-1023}";
+    const char expect_str[]  = "PB{-1023}";
     EXPECT_EQ(&r,
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
