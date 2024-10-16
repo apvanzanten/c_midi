@@ -35,8 +35,10 @@ static Result tst_size(void) {
   EXPECT_EQ(&r, sizeof(MIDI_NoteOn), 2);
   EXPECT_EQ(&r, sizeof(MIDI_ControlChange), 2);
   EXPECT_EQ(&r, sizeof(MIDI_PitchBend), 2);
+  EXPECT_EQ(&r, sizeof(MIDI_AftertouchMono), 1);
+  EXPECT_EQ(&r, sizeof(MIDI_AftertouchPoly), 2);
 
-  EXPECT_EQ(&r, sizeof(MIDI_Message), 8);
+  EXPECT_EQ(&r, sizeof(MIDI_Message), 6);
 
   return r;
 }

@@ -37,17 +37,19 @@ typedef struct MIDI_MsgBuffer {
 } MIDI_MsgBuffer;
 
 typedef struct MIDI_Decoder {
-  MIDI_Channel channel;
-
   uint8_t        state;
   MIDI_MsgBuffer msg_buffer;
 
   MIDI_Note    current_note;
   MIDI_Control current_control;
-  uint8_t      pitch_bend_lsb;
+  MIDI_Channel current_channel;
+
+  uint8_t pitch_bend_lsb;
+
+  uint8_t running_status;
 } MIDI_Decoder;
 
-STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_Channel channel);
+STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder);
 
 STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
 

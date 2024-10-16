@@ -20,6 +20,7 @@
 #ifndef C_MIDI_MESSAGE_H
 #define C_MIDI_MESSAGE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "control.h"
@@ -38,6 +39,8 @@ typedef enum MIDI_MessageType {
 
 static inline uint8_t      MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t);
+static inline bool         MIDI_is_channel_type(MIDI_MessageType type);
+static inline bool         MIDI_is_system_type(MIDI_MessageType type) { return type == MIDI_MSG_TYPE_SYSTEM; }
 
 typedef enum MIDI_SystemMessageType {
   MIDI_MSG_TYPE_SYSEX = 0x0,
@@ -61,19 +64,20 @@ typedef enum MIDI_SystemMessageType {
 
 static inline uint8_t      MIDI_system_type_to_byte(MIDI_SystemMessageType type) { return (uint8_t)type; }
 static inline const char * MIDI_system_message_type_to_str(MIDI_SystemMessageType t);
+static inline bool         MIDI_is_real_time_type(MIDI_SystemMessageType type);
 
 typedef struct MIDI_NoteOff {
-  uint8_t note; // MIDI_Note
+  uint8_t note; // value of MIDI_Note
   uint8_t velocity;
 } MIDI_NoteOff;
 
 typedef struct MIDI_NoteOn {
-  uint8_t note; // MIDI_Note
+  uint8_t note; // value of MIDI_Note
   uint8_t velocity;
 } MIDI_NoteOn;
 
 typedef struct MIDI_ControlChange {
-  uint8_t control; // MIDI_ControlType
+  uint8_t control; // value of MIDI_Note
   uint8_t value;
 } MIDI_ControlChange;
 
@@ -81,27 +85,38 @@ typedef struct MIDI_PitchBend {
   int16_t value;
 } MIDI_PitchBend;
 
+typedef struct MIDI_AftertouchMono {
+  uint8_t value;
+} MIDI_AftertouchMono;
+
+typedef struct MIDI_AftertouchPoly {
+  uint8_t note; // value of MIDI_Note
+  uint8_t value;
+} MIDI_AftertouchPoly;
+
 typedef uint8_t MIDI_Channel;
 
 typedef struct MIDI_ChannelMessage {
   MIDI_Channel channel : 4;
   union {
-    MIDI_NoteOff       note_off;
-    MIDI_NoteOn        note_on;
-    MIDI_ControlChange control_change;
-    MIDI_PitchBend     pitch_bend;
+    MIDI_NoteOff        note_off;
+    MIDI_NoteOn         note_on;
+    MIDI_ControlChange  control_change;
+    MIDI_PitchBend      pitch_bend;
+    MIDI_AftertouchMono aftertouch_mono;
+    MIDI_AftertouchPoly aftertouch_poly;
   } data;
 } MIDI_ChannelMessage;
 
 typedef struct MIDI_SystemMessage {
-  MIDI_SystemMessageType type : 4;
+  uint8_t type; // value of MIDI_SystemMessageType
   // union {
   //   // TODO
   // } data;
 } MIDI_SystemMessage;
 
 typedef struct MIDI_Message {
-  MIDI_MessageType type : 7; // MIDI_MessageType
+  uint8_t type; // value of MIDI_MessageType
   union {
     MIDI_ChannelMessage channel_msg;
     MIDI_SystemMessage  system_msg;
@@ -135,6 +150,19 @@ static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   return "UNKNOWN";
 }
 
+static inline bool MIDI_is_channel_type(MIDI_MessageType type) {
+  switch(type) {
+  case MIDI_MSG_TYPE_NOTE_OFF: return true;
+  case MIDI_MSG_TYPE_NOTE_ON: return true;
+  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return true;
+  case MIDI_MSG_TYPE_CONTROL_CHANGE: return true;
+  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return true;
+  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return true;
+  case MIDI_MSG_TYPE_PITCH_BEND: return true;
+  default: return false;
+  }
+}
+
 static inline const char * MIDI_system_message_type_to_str(MIDI_SystemMessageType t) {
   switch(t) {
   case MIDI_MSG_TYPE_SYSEX: return "SYSEX";
@@ -151,6 +179,18 @@ static inline const char * MIDI_system_message_type_to_str(MIDI_SystemMessageTyp
   case MIDI_MSG_TYPE_SYSTEM_RESET: return "SYSTEM_RESET";
   }
   return "UNKNOWN";
+}
+
+static inline bool MIDI_is_real_time_type(MIDI_SystemMessageType type) {
+  switch(type) {
+  case MIDI_MSG_TYPE_TIMING_CLOCK: return true;
+  case MIDI_MSG_TYPE_START: return true;
+  case MIDI_MSG_TYPE_CONTINUE: return true;
+  case MIDI_MSG_TYPE_STOP: return true;
+  case MIDI_MSG_TYPE_ACTIVE_SENSING: return true;
+  case MIDI_MSG_TYPE_SYSTEM_RESET: return true;
+  default: return false;
+  }
 }
 
 #endif

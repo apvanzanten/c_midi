@@ -101,12 +101,12 @@ typedef enum MIDI_Note {
   MIDI_NOTE_F_9,
   MIDI_NOTE_G_B_9, MIDI_NOTE_G_9, // [120,127]
   // clang-format on
-
-  MIDI_NOTE_LOWEST  = MIDI_NOTE_C_N1,
-  MIDI_NOTE_HIGHEST = MIDI_NOTE_G_9,
-  MIDI_NOTE_BEGIN   = MIDI_NOTE_LOWEST,
-  MIDI_NOTE_END     = MIDI_NOTE_HIGHEST + 1,
 } MIDI_Note;
+
+#define MIDI_NOTE_LOWEST  (MIDI_NOTE_C_N1)
+#define MIDI_NOTE_HIGHEST (MIDI_NOTE_G_9)
+#define MIDI_NOTE_BEGIN   (MIDI_NOTE_LOWEST)
+#define MIDI_NOTE_END     (MIDI_NOTE_HIGHEST + 1),
 
 static inline uint8_t MIDI_note_to_byte(MIDI_Note n) { return (uint8_t)n; }
 static inline uint8_t MIDI_byte_to_note(uint8_t u) { return (MIDI_Note)u; }
