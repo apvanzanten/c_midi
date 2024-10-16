@@ -62,9 +62,9 @@ static Result tst_note_on(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 100;
 
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, velocity_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -94,9 +94,9 @@ static Result tst_note_on_zero_velocity(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 0;
 
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, velocity_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -184,7 +184,7 @@ static Result tst_multiple_msgs(void * env) {
     EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
     if(HAS_FAILED(&r)) return r;
 
-    EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, bytes[i]));
+    EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, bytes[i]));
     if(HAS_FAILED(&r)) return r;
   }
 

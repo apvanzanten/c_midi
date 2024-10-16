@@ -68,7 +68,7 @@ STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_Channel channel
   return OK;
 }
 
-STAT_Val MIDI_parse_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
+STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
   if(!MIDI_decoder_is_ready(decoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "decoder not ready");
   if(!is_supported(byte)) return OK; // silently skip unsupported bytes

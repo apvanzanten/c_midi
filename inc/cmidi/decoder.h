@@ -51,7 +51,7 @@ typedef struct MIDI_Decoder {
 
 STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_Channel channel);
 
-STAT_Val MIDI_parse_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
+STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
 
 static inline bool         MIDI_decoder_has_output(const MIDI_Decoder * restrict decoder);
 static inline MIDI_Message MIDI_decoder_peek_msg(const MIDI_Decoder * restrict decoder);
