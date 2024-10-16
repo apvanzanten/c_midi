@@ -17,8 +17,8 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef C_MIDI_PARSER_H
-#define C_MIDI_PARSER_H
+#ifndef C_MIDI_DECODER_H
+#define C_MIDI_DECODER_H
 
 #include <stdint.h>
 
@@ -38,7 +38,7 @@ typedef struct MIDI_MsgBuffer {
 
 typedef uint8_t MIDI_Channel;
 
-typedef struct MIDI_Parser {
+typedef struct MIDI_Decoder {
   MIDI_Channel channel;
 
   uint8_t        state;
@@ -47,16 +47,16 @@ typedef struct MIDI_Parser {
   MIDI_Note    current_note;
   MIDI_Control current_control;
   uint8_t      pitch_bend_lsb;
-} MIDI_Parser;
+} MIDI_Decoder;
 
-STAT_Val MIDI_parser_init(MIDI_Parser * restrict parser, MIDI_Channel channel);
+STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_Channel channel);
 
-STAT_Val MIDI_parse_byte(MIDI_Parser * restrict parser, uint8_t byte);
+STAT_Val MIDI_parse_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
 
-static inline bool         MIDI_parser_has_output(const MIDI_Parser * restrict parser);
-static inline MIDI_Message MIDI_parser_peek_msg(const MIDI_Parser * restrict parser);
-static inline MIDI_Message MIDI_parser_pop_msg(MIDI_Parser * restrict parser);
-static inline bool         MIDI_parser_is_ready(const MIDI_Parser * restrict parser);
+static inline bool         MIDI_decoder_has_output(const MIDI_Decoder * restrict decoder);
+static inline MIDI_Message MIDI_decoder_peek_msg(const MIDI_Decoder * restrict decoder);
+static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder);
+static inline bool         MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder);
 
 static inline bool         MIDI_INT_buff_is_empty(const MIDI_MsgBuffer * restrict buffer);
 static inline bool         MIDI_INT_buff_is_full(const MIDI_MsgBuffer * restrict buffer);
@@ -64,22 +64,22 @@ static inline MIDI_Message MIDI_INT_buff_pop(MIDI_MsgBuffer * restrict buffer);
 static inline void         MIDI_INT_buff_push(MIDI_MsgBuffer * restrict buffer, MIDI_Message msg);
 static inline MIDI_Message MIDI_INT_buff_peek(const MIDI_MsgBuffer * restrict buffer);
 
-static inline bool MIDI_parser_has_output(const MIDI_Parser * restrict parser) {
-  return (parser != NULL) && !MIDI_INT_buff_is_empty(&(parser->msg_buffer));
+static inline bool MIDI_decoder_has_output(const MIDI_Decoder * restrict decoder) {
+  return (decoder != NULL) && !MIDI_INT_buff_is_empty(&(decoder->msg_buffer));
 }
 
-static inline MIDI_Message MIDI_parser_peek_msg(const MIDI_Parser * restrict parser) {
-  if(parser == NULL) return (MIDI_Message){0};
-  return MIDI_INT_buff_peek(&(parser->msg_buffer));
+static inline MIDI_Message MIDI_decoder_peek_msg(const MIDI_Decoder * restrict decoder) {
+  if(decoder == NULL) return (MIDI_Message){0};
+  return MIDI_INT_buff_peek(&(decoder->msg_buffer));
 }
 
-static inline MIDI_Message MIDI_parser_pop_msg(MIDI_Parser * restrict parser) {
-  if(parser == NULL) return (MIDI_Message){0};
-  return MIDI_INT_buff_pop(&(parser->msg_buffer));
+static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder) {
+  if(decoder == NULL) return (MIDI_Message){0};
+  return MIDI_INT_buff_pop(&(decoder->msg_buffer));
 }
 
-static inline bool MIDI_parser_is_ready(const MIDI_Parser * restrict parser) {
-  return (parser != NULL) && (!MIDI_INT_buff_is_full(&(parser->msg_buffer)));
+static inline bool MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder) {
+  return (decoder != NULL) && (!MIDI_INT_buff_is_full(&(decoder->msg_buffer)));
 }
 
 static inline bool MIDI_INT_buff_is_empty(const MIDI_MsgBuffer * restrict buffer) {

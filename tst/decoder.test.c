@@ -26,7 +26,7 @@
 
 #define OK STAT_OK
 
-#include "parser.h"
+#include "decoder.h"
 
 #define TEST_CHANNEL      2
 #define TEST_CHANNEL_BITS (TEST_CHANNEL - 1)
@@ -38,22 +38,22 @@ static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
 static Result tst_fixture(void * env) {
-  Result              r      = PASS;
-  const MIDI_Parser * parser = (MIDI_Parser *)env;
+  Result               r       = PASS;
+  const MIDI_Decoder * decoder = (MIDI_Decoder *)env;
 
-  EXPECT_NE(&r, NULL, parser);
+  EXPECT_NE(&r, NULL, decoder);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, TEST_CHANNEL, parser->channel);
-  EXPECT_FALSE(&r, MIDI_parser_has_output(parser));
-  EXPECT_TRUE(&r, MIDI_parser_is_ready(parser));
+  EXPECT_EQ(&r, TEST_CHANNEL, decoder->channel);
+  EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
+  EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
 
   return r;
 }
 
 static Result tst_note_on(void * env) {
-  Result        r      = PASS;
-  MIDI_Parser * parser = (MIDI_Parser *)env;
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
 
   const MIDI_MessageType msg_type      = MIDI_MSG_TYPE_NOTE_ON;
   const uint8_t          status_bit    = (1 << 7); // 0b1000'0000
@@ -62,30 +62,30 @@ static Result tst_note_on(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 100;
 
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, velocity_byte));
 
-  EXPECT_TRUE(&r, MIDI_parser_has_output(parser));
+  EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
-  const MIDI_Message peek_res = MIDI_parser_peek_msg(parser);
+  const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
   EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, peek_res.type);
   EXPECT_EQ(&r, note, peek_res.data.note_on.note);
   EXPECT_EQ(&r, 100, peek_res.data.note_on.velocity);
 
-  const MIDI_Message pop_res = MIDI_parser_pop_msg(parser);
+  const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
   EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, pop_res.type);
   EXPECT_EQ(&r, note, pop_res.data.note_on.note);
   EXPECT_EQ(&r, 100, pop_res.data.note_on.velocity);
 
-  EXPECT_FALSE(&r, MIDI_parser_has_output(parser));
+  EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
 
   return r;
 }
 
 static Result tst_note_on_zero_velocity(void * env) {
-  Result        r      = PASS;
-  MIDI_Parser * parser = (MIDI_Parser *)env;
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
 
   const MIDI_MessageType msg_type      = MIDI_MSG_TYPE_NOTE_ON;
   const uint8_t          status_bit    = (1 << 7); // 0b1000'0000
@@ -94,23 +94,23 @@ static Result tst_note_on_zero_velocity(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 0;
 
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, velocity_byte));
 
-  EXPECT_TRUE(&r, MIDI_parser_has_output(parser));
+  EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
-  const MIDI_Message peek_res = MIDI_parser_peek_msg(parser);
+  const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
   EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_OFF, peek_res.type);
   EXPECT_EQ(&r, note, peek_res.data.note_off.note);
   EXPECT_EQ(&r, 63, peek_res.data.note_off.velocity);
 
-  const MIDI_Message pop_res = MIDI_parser_pop_msg(parser);
+  const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
   EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_OFF, pop_res.type);
   EXPECT_EQ(&r, note, pop_res.data.note_off.note);
   EXPECT_EQ(&r, 63, pop_res.data.note_off.velocity);
 
-  EXPECT_FALSE(&r, MIDI_parser_has_output(parser));
+  EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
 
   return r;
 }
@@ -123,8 +123,8 @@ static uint8_t pitch_bend_msb(int16_t value) {
 }
 
 static Result tst_multiple_msgs(void * env) {
-  Result        r      = PASS;
-  MIDI_Parser * parser = (MIDI_Parser *)env;
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
 
   printf("start test %s\n", __func__);
 
@@ -181,21 +181,21 @@ static Result tst_multiple_msgs(void * env) {
   };
 
   for(size_t i = 0; i < sizeof(bytes); i++) {
-    EXPECT_TRUE(&r, MIDI_parser_is_ready(parser));
+    EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
     if(HAS_FAILED(&r)) return r;
 
-    EXPECT_EQ(&r, OK, MIDI_parse_byte(parser, bytes[i]));
+    EXPECT_EQ(&r, OK, MIDI_parse_byte(decoder, bytes[i]));
     if(HAS_FAILED(&r)) return r;
   }
 
   for(size_t i = 0; i < (sizeof(expect_msgs) / sizeof(expect_msgs[0])); i++) {
     const MIDI_Message expect = expect_msgs[i];
 
-    EXPECT_TRUE(&r, MIDI_parser_has_output(parser));
+    EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
     if(HAS_FAILED(&r)) return r;
 
-    const MIDI_Message peek_res = MIDI_parser_peek_msg(parser);
-    const MIDI_Message pop_res  = MIDI_parser_pop_msg(parser);
+    const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
+    const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
     EXPECT_EQ(&r, expect.type, peek_res.type);
     EXPECT_EQ(&r, expect.type, pop_res.type);
 
@@ -243,7 +243,7 @@ static Result tst_multiple_msgs(void * env) {
     }
   }
 
-  EXPECT_FALSE(&r, MIDI_parser_has_output(parser));
+  EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
 
   return r;
 }
@@ -270,13 +270,13 @@ static Result setup(void ** env_p) {
   EXPECT_NE(&r, NULL, env_p);
   if(HAS_FAILED(&r)) return r;
 
-  MIDI_Parser ** pars_p = (MIDI_Parser **)env_p;
+  MIDI_Decoder ** pars_p = (MIDI_Decoder **)env_p;
 
-  *pars_p = malloc(sizeof(MIDI_Parser));
+  *pars_p = malloc(sizeof(MIDI_Decoder));
   EXPECT_NE(&r, NULL, *pars_p);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, MIDI_parser_init(*pars_p, TEST_CHANNEL));
+  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p, TEST_CHANNEL));
 
   return r;
 }
