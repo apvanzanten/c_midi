@@ -118,11 +118,13 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       if(is_data_byte(byte)) {
         const uint8_t      velocity = byte;
         const MIDI_Message msg =
-            ((velocity > 0) ? ((MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
-                                              .data.note_on = {.note = decoder->current_note, .velocity = velocity}})
-                            : ((MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
-                                              .data.note_off = {.note     = decoder->current_note,
-                                                                .velocity = NOTE_OFF_DEFAULT_VELOCITY}}));
+            ((velocity > 0)
+                 ? ((MIDI_Message){.type                        = MIDI_MSG_TYPE_NOTE_ON,
+                                   .as.channel_msg.data.note_on = {.note     = decoder->current_note,
+                                                                   .velocity = velocity}})
+                 : ((MIDI_Message){.type                         = MIDI_MSG_TYPE_NOTE_OFF,
+                                   .as.channel_msg.data.note_off = {.note     = decoder->current_note,
+                                                                    .velocity = NOTE_OFF_DEFAULT_VELOCITY}}));
         MIDI_INT_buff_push(&(decoder->msg_buffer), msg);
 
         decoder->state = ST_RUNNING_NOTE_ON; // succesfully parsed note, we may get another
@@ -148,8 +150,9 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_NOTE_OFF_WITH_VALID_NOTE: {
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
-                                          .data.note_off = {.note = decoder->current_note, .velocity = byte}});
+                           (MIDI_Message){.type                         = MIDI_MSG_TYPE_NOTE_OFF,
+                                          .as.channel_msg.data.note_off = {.note     = decoder->current_note,
+                                                                           .velocity = byte}});
 
         decoder->state = ST_RUNNING_NOTE_OFF; // succesfully parsed note, we may get another
       } else {
@@ -174,8 +177,9 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_CONTROL_CHANGE_WITH_VALID_CONTROL: {
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type                = MIDI_MSG_TYPE_CONTROL_CHANGE,
-                                          .data.control_change = {.control = decoder->current_control, .value = byte}});
+                           (MIDI_Message){.type                               = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                          .as.channel_msg.data.control_change = {.control = decoder->current_control,
+                                                                                 .value   = byte}});
 
         decoder->state = ST_RUNNING_CONTROL_CHANGE;
       } else {
@@ -200,8 +204,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_PITCH_BEND_WITH_VALID_LSB: {
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
-                                          .data.pitch_bend = {
+                           (MIDI_Message){.type                           = MIDI_MSG_TYPE_PITCH_BEND,
+                                          .as.channel_msg.data.pitch_bend = {
                                               .value = make_pitch_bend_value(decoder->pitch_bend_lsb, byte)}});
 
         decoder->state = ST_RUNNING_PITCH_BEND; // pitch bend parsed OK, maybe we get another

@@ -36,7 +36,7 @@ static Result tst_size(void) {
   EXPECT_EQ(&r, sizeof(MIDI_ControlChange), 2);
   EXPECT_EQ(&r, sizeof(MIDI_PitchBend), 2);
 
-  EXPECT_EQ(&r, sizeof(MIDI_Message), 4);
+  EXPECT_EQ(&r, sizeof(MIDI_Message), 8);
 
   return r;
 }
@@ -51,8 +51,9 @@ static Result tst_to_string(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer(str,
                                          1024,
-                                         (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
-                                                        .data.note_off = {.note = MIDI_NOTE_A_4, .velocity = 100}}));
+                                         (MIDI_Message){.type                         = MIDI_MSG_TYPE_NOTE_OFF,
+                                                        .as.channel_msg.data.note_off = {.note     = MIDI_NOTE_A_4,
+                                                                                         .velocity = 100}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -63,8 +64,9 @@ static Result tst_to_string(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer(str,
                                          1024,
-                                         (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
-                                                        .data.note_on = {.note = MIDI_NOTE_D_5, .velocity = 27}}));
+                                         (MIDI_Message){.type                        = MIDI_MSG_TYPE_NOTE_ON,
+                                                        .as.channel_msg.data.note_on = {.note     = MIDI_NOTE_D_5,
+                                                                                        .velocity = 27}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -76,9 +78,10 @@ static Result tst_to_string(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer(str,
                                          1024,
-                                         (MIDI_Message){.type                = MIDI_MSG_TYPE_CONTROL_CHANGE,
-                                                        .data.control_change = {.control = MIDI_CTRL_EFFECT1,
-                                                                                .value   = 101}}));
+                                         (MIDI_Message){.type = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                                        .as.channel_msg.data.control_change = {.control =
+                                                                                                   MIDI_CTRL_EFFECT1,
+                                                                                               .value = 101}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -89,8 +92,8 @@ static Result tst_to_string(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer(str,
                                          1024,
-                                         (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
-                                                        .data.pitch_bend = {.value = -1023}}));
+                                         (MIDI_Message){.type                           = MIDI_MSG_TYPE_PITCH_BEND,
+                                                        .as.channel_msg.data.pitch_bend = {.value = -1023}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -108,9 +111,9 @@ static Result tst_to_string_short(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
                                                1024,
-                                               (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
-                                                              .data.note_off = {.note     = MIDI_NOTE_A_4,
-                                                                                .velocity = 100}}));
+                                               (MIDI_Message){.type                         = MIDI_MSG_TYPE_NOTE_OFF,
+                                                              .as.channel_msg.data.note_off = {.note = MIDI_NOTE_A_4,
+                                                                                               .velocity = 100}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -121,9 +124,9 @@ static Result tst_to_string_short(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
                                                1024,
-                                               (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
-                                                              .data.note_on = {.note     = MIDI_NOTE_D_5,
-                                                                               .velocity = 27}}));
+                                               (MIDI_Message){.type                        = MIDI_MSG_TYPE_NOTE_ON,
+                                                              .as.channel_msg.data.note_on = {.note     = MIDI_NOTE_D_5,
+                                                                                              .velocity = 27}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -134,9 +137,9 @@ static Result tst_to_string_short(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
                                                1024,
-                                               (MIDI_Message){.type                = MIDI_MSG_TYPE_CONTROL_CHANGE,
-                                                              .data.control_change = {.control = MIDI_CTRL_EFFECT1,
-                                                                                      .value   = 101}}));
+                                               (MIDI_Message){.type = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                                              .as.channel_msg.data.control_change =
+                                                                  {.control = MIDI_CTRL_EFFECT1, .value = 101}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -147,8 +150,8 @@ static Result tst_to_string_short(void) {
               strlen(expect_str),
               MIDI_message_to_str_buffer_short(str,
                                                1024,
-                                               (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
-                                                              .data.pitch_bend = {.value = -1023}}));
+                                               (MIDI_Message){.type = MIDI_MSG_TYPE_PITCH_BEND,
+                                                              .as.channel_msg.data.pitch_bend = {.value = -1023}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }

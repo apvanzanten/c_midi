@@ -36,8 +36,6 @@ typedef struct MIDI_MsgBuffer {
   bool         is_full;
 } MIDI_MsgBuffer;
 
-typedef uint8_t MIDI_Channel;
-
 typedef struct MIDI_Decoder {
   MIDI_Channel channel;
 

@@ -33,10 +33,34 @@ typedef enum MIDI_MessageType {
   MIDI_MSG_TYPE_PROGRAM_CHANGE,
   MIDI_MSG_TYPE_AFTERTOUCH_MONO,
   MIDI_MSG_TYPE_PITCH_BEND,
-  MIDI_MSG_TYPE_MISC,
+  MIDI_MSG_TYPE_SYSTEM = 0x7,
 } MIDI_MessageType;
 
-static inline uint8_t MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
+static inline uint8_t      MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
+static inline const char * MIDI_message_type_to_str(MIDI_MessageType t);
+
+typedef enum MIDI_SystemMessageType {
+  MIDI_MSG_TYPE_SYSEX = 0x0,
+
+  // system common
+  MIDI_MSG_TYPE_MTC_QUARTER_FRAME = 0x1,
+  MIDI_MSG_TYPE_SONG_POSITION_POINTER,
+  MIDI_MSG_TYPE_SONG_SELECT,
+
+  MIDI_MSG_TYPE_TUNE_REQUEST = 0x6,
+  MIDI_MSG_TYPE_END_OF_SYSEX,
+
+  // system real-time
+  MIDI_MSG_TYPE_TIMING_CLOCK = 0x8,
+  MIDI_MSG_TYPE_START,
+  MIDI_MSG_TYPE_CONTINUE,
+  MIDI_MSG_TYPE_STOP,
+  MIDI_MSG_TYPE_ACTIVE_SENSING,
+  MIDI_MSG_TYPE_SYSTEM_RESET,
+} MIDI_SystemMessageType;
+
+static inline uint8_t      MIDI_system_type_to_byte(MIDI_SystemMessageType type) { return (uint8_t)type; }
+static inline const char * MIDI_system_message_type_to_str(MIDI_SystemMessageType t);
 
 typedef struct MIDI_NoteOff {
   uint8_t note; // MIDI_Note
@@ -57,29 +81,32 @@ typedef struct MIDI_PitchBend {
   int16_t value;
 } MIDI_PitchBend;
 
-typedef struct MIDI_Message {
-  uint8_t type; // MIDI_MessageType
+typedef uint8_t MIDI_Channel;
+
+typedef struct MIDI_ChannelMessage {
+  MIDI_Channel channel : 4;
   union {
     MIDI_NoteOff       note_off;
     MIDI_NoteOn        note_on;
     MIDI_ControlChange control_change;
     MIDI_PitchBend     pitch_bend;
   } data;
-} MIDI_Message;
+} MIDI_ChannelMessage;
 
-static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
-  switch(t) {
-  case MIDI_MSG_TYPE_NOTE_OFF: return "NOTE_OFF";
-  case MIDI_MSG_TYPE_NOTE_ON: return "NOTE_ON";
-  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return "AFTERTOUCH_POLY";
-  case MIDI_MSG_TYPE_CONTROL_CHANGE: return "CONTROL_CHANGE";
-  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return "PROGRAM_CHANGE";
-  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return "AFTERTOUCH_MONO";
-  case MIDI_MSG_TYPE_PITCH_BEND: return "PITCH_BEND";
-  case MIDI_MSG_TYPE_MISC: return "MISC";
-  }
-  return "UNKNOWN";
-}
+typedef struct MIDI_SystemMessage {
+  MIDI_SystemMessageType type : 4;
+  // union {
+  //   // TODO
+  // } data;
+} MIDI_SystemMessage;
+
+typedef struct MIDI_Message {
+  MIDI_MessageType type : 7; // MIDI_MessageType
+  union {
+    MIDI_ChannelMessage channel_msg;
+    MIDI_SystemMessage  system_msg;
+  } as;
+} MIDI_Message;
 
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
@@ -93,5 +120,37 @@ int MIDI_pitch_bend_msg_to_str_buffer_short(char * str, int max_len, MIDI_PitchB
 
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);
+
+static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
+  switch(t) {
+  case MIDI_MSG_TYPE_NOTE_OFF: return "NOTE_OFF";
+  case MIDI_MSG_TYPE_NOTE_ON: return "NOTE_ON";
+  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return "AFTERTOUCH_POLY";
+  case MIDI_MSG_TYPE_CONTROL_CHANGE: return "CONTROL_CHANGE";
+  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return "PROGRAM_CHANGE";
+  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return "AFTERTOUCH_MONO";
+  case MIDI_MSG_TYPE_PITCH_BEND: return "PITCH_BEND";
+  case MIDI_MSG_TYPE_SYSTEM: return "SYSTEM";
+  }
+  return "UNKNOWN";
+}
+
+static inline const char * MIDI_system_message_type_to_str(MIDI_SystemMessageType t) {
+  switch(t) {
+  case MIDI_MSG_TYPE_SYSEX: return "SYSEX";
+  case MIDI_MSG_TYPE_MTC_QUARTER_FRAME: return "MTC_QUARTER_FRAME";
+  case MIDI_MSG_TYPE_SONG_POSITION_POINTER: return "SONG_POSITION_POINTER";
+  case MIDI_MSG_TYPE_SONG_SELECT: return "SONG_SELECT";
+  case MIDI_MSG_TYPE_TUNE_REQUEST: return "TUNE_REQUEST";
+  case MIDI_MSG_TYPE_END_OF_SYSEX: return "END_OF_SYSEX";
+  case MIDI_MSG_TYPE_TIMING_CLOCK: return "TIMING_CLOCK";
+  case MIDI_MSG_TYPE_START: return "START";
+  case MIDI_MSG_TYPE_CONTINUE: return "CONTINUE";
+  case MIDI_MSG_TYPE_STOP: return "STOP";
+  case MIDI_MSG_TYPE_ACTIVE_SENSING: return "ACTIVE_SENSING";
+  case MIDI_MSG_TYPE_SYSTEM_RESET: return "SYSTEM_RESET";
+  }
+  return "UNKNOWN";
+}
 
 #endif
