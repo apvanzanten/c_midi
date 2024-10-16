@@ -13,7 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   c_facilities
   GIT_REPOSITORY https://github.com/apvanzanten/c_facilities/
-  GIT_TAG        origin/main
+  GIT_TAG        origin/v2_develop
   )
 FetchContent_MakeAvailable(c_facilities)
 set(CFAC_INC_DIR ${c_facilities_SOURCE_DIR}/inc)
