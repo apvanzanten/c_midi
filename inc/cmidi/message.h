@@ -81,6 +81,10 @@ typedef struct MIDI_ControlChange {
   uint8_t value;
 } MIDI_ControlChange;
 
+typedef struct MIDI_ProgramChange {
+  uint8_t program_id;
+} MIDI_ProgramChange;
+
 typedef struct MIDI_PitchBend {
   int16_t value;
 } MIDI_PitchBend;
@@ -102,6 +106,7 @@ typedef struct MIDI_ChannelMessage {
     MIDI_NoteOff        note_off;
     MIDI_NoteOn         note_on;
     MIDI_ControlChange  control_change;
+    MIDI_ProgramChange  program_change;
     MIDI_PitchBend      pitch_bend;
     MIDI_AftertouchMono aftertouch_mono;
     MIDI_AftertouchPoly aftertouch_poly;
