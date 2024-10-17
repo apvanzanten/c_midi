@@ -492,79 +492,9 @@ static Result tst_multiple_msgs(void * env) {
 
     const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
     const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, expect.type, peek_res.type);
-    EXPECT_EQ(&r, expect.type, pop_res.type);
+    EXPECT_TRUE(&r, MIDI_message_equals(&peek_res, &pop_res));
 
-    if(!HAS_FAILED(&r)) {
-
-      EXPECT_EQ(&r, expect.as.channel_msg.channel, peek_res.as.channel_msg.channel);
-      switch(expect.type) {
-      case MIDI_MSG_TYPE_NOTE_ON:
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_on.note, peek_res.as.channel_msg.data.note_on.note);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_on.velocity, peek_res.as.channel_msg.data.note_on.velocity);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_on.note, pop_res.as.channel_msg.data.note_on.note);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_on.velocity, pop_res.as.channel_msg.data.note_on.velocity);
-        break;
-      case MIDI_MSG_TYPE_NOTE_OFF:
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_off.note, peek_res.as.channel_msg.data.note_off.note);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_off.velocity, peek_res.as.channel_msg.data.note_off.velocity);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_off.note, pop_res.as.channel_msg.data.note_off.note);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.note_off.velocity, pop_res.as.channel_msg.data.note_off.velocity);
-        break;
-      case MIDI_MSG_TYPE_CONTROL_CHANGE:
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.control_change.control,
-                  peek_res.as.channel_msg.data.control_change.control);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.control_change.value,
-                  peek_res.as.channel_msg.data.control_change.value);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.control_change.control,
-                  pop_res.as.channel_msg.data.control_change.control);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.control_change.value,
-                  pop_res.as.channel_msg.data.control_change.value);
-        break;
-      case MIDI_MSG_TYPE_PROGRAM_CHANGE:
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.program_change.program_id,
-                  peek_res.as.channel_msg.data.program_change.program_id);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.program_change.program_id,
-                  pop_res.as.channel_msg.data.program_change.program_id);
-        break;
-      case MIDI_MSG_TYPE_PITCH_BEND:
-        EXPECT_EQ(&r, expect.as.channel_msg.data.pitch_bend.value, peek_res.as.channel_msg.data.pitch_bend.value);
-        EXPECT_EQ(&r, expect.as.channel_msg.data.pitch_bend.value, pop_res.as.channel_msg.data.pitch_bend.value);
-        break;
-      case MIDI_MSG_TYPE_AFTERTOUCH_MONO:
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_mono.value,
-                  peek_res.as.channel_msg.data.aftertouch_mono.value);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_mono.value,
-                  pop_res.as.channel_msg.data.aftertouch_mono.value);
-        break;
-      case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_poly.note,
-                  peek_res.as.channel_msg.data.aftertouch_poly.note);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_poly.value,
-                  peek_res.as.channel_msg.data.aftertouch_poly.value);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_poly.note,
-                  pop_res.as.channel_msg.data.aftertouch_poly.note);
-        EXPECT_EQ(&r,
-                  expect.as.channel_msg.data.aftertouch_poly.value,
-                  pop_res.as.channel_msg.data.aftertouch_poly.value);
-        break;
-
-      case MIDI_MSG_TYPE_SYSTEM: EXPECT_EQ(&r, expect.as.system_msg.type, pop_res.as.system_msg.type); break;
-
-      default: EXPECT_FALSE(&r, true); break;
-      }
-    }
+    EXPECT_TRUE(&r, MIDI_message_equals(&expect, &pop_res));
 
     if(HAS_FAILED(&r)) {
       {
