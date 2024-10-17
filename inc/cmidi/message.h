@@ -125,12 +125,20 @@ typedef struct MIDI_Message {
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
 int MIDI_control_change_msg_to_str_buffer(char * str, int max_len, MIDI_ControlChange msg);
+int MIDI_program_change_msg_to_str_buffer(char * str, int max_len, MIDI_ProgramChange msg);
 int MIDI_pitch_bend_msg_to_str_buffer(char * str, int max_len, MIDI_PitchBend msg);
+int MIDI_aftertouch_mono_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchMono msg);
+int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchPoly msg);
+int MIDI_system_msg_to_str_buffer(char * str, int max_len, MIDI_SystemMessage msg);
 
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOn msg);
 int MIDI_control_change_msg_to_str_buffer_short(char * str, int max_len, MIDI_ControlChange msg);
+int MIDI_program_change_msg_to_str_buffer_short(char * str, int max_len, MIDI_ProgramChange msg);
 int MIDI_pitch_bend_msg_to_str_buffer_short(char * str, int max_len, MIDI_PitchBend msg);
+int MIDI_aftertouch_mono_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchMono msg);
+int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchPoly msg);
+int MIDI_system_msg_to_str_buffer_short(char * str, int max_len, MIDI_SystemMessage msg);
 
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);

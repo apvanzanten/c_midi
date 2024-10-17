@@ -115,6 +115,60 @@ static Result tst_to_string(void) {
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[] =
+        "MIDI_Message{.type=PROGRAM_CHANGE, .channel=3, .as.program_change=MIDI_ProgramChange{.program_id=12}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type                         = MIDI_MSG_TYPE_PROGRAM_CHANGE,
+                                                        .channel                      = 3,
+                                                        .as.program_change.program_id = 12}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[] =
+        "MIDI_Message{.type=AFTERTOUCH_MONO, .channel=4, .as.aftertouch_mono=MIDI_AftertouchMono{.value=13}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type                     = MIDI_MSG_TYPE_AFTERTOUCH_MONO,
+                                                        .channel                  = 4,
+                                                        .as.aftertouch_mono.value = 13}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[] =
+        "MIDI_Message{.type=AFTERTOUCH_POLY, .channel=5, .as.aftertouch_poly=MIDI_AftertouchPoly{.note=D5, .value=23}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type               = MIDI_MSG_TYPE_AFTERTOUCH_POLY,
+                                                        .channel            = 5,
+                                                        .as.aftertouch_poly = {.note = MIDI_NOTE_D_5, .value = 23}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI_Message{.type=SYSTEM, .as.system_msg=MIDI_SystemMessage{.type=TIMING_CLOCK}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type          = MIDI_MSG_TYPE_SYSTEM,
+                                                        .as.system_msg = {.type = MIDI_MSG_TYPE_TIMING_CLOCK}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
 
   return r;
 }
