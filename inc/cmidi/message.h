@@ -100,19 +100,6 @@ typedef struct MIDI_AftertouchPoly {
 
 typedef uint8_t MIDI_Channel;
 
-typedef struct MIDI_ChannelMessage {
-  MIDI_Channel channel : 4;
-  union {
-    MIDI_NoteOff        note_off;
-    MIDI_NoteOn         note_on;
-    MIDI_ControlChange  control_change;
-    MIDI_ProgramChange  program_change;
-    MIDI_PitchBend      pitch_bend;
-    MIDI_AftertouchMono aftertouch_mono;
-    MIDI_AftertouchPoly aftertouch_poly;
-  } data;
-} MIDI_ChannelMessage;
-
 typedef struct MIDI_SystemMessage {
   uint8_t type; // value of MIDI_SystemMessageType
   // union {
@@ -121,9 +108,16 @@ typedef struct MIDI_SystemMessage {
 } MIDI_SystemMessage;
 
 typedef struct MIDI_Message {
-  uint8_t type; // value of MIDI_MessageType
+  uint8_t      type : 4;    // value of MIDI_MessageType
+  MIDI_Channel channel : 4; // only used for channel type messages
   union {
-    MIDI_ChannelMessage channel_msg;
+    MIDI_NoteOff        note_off;
+    MIDI_NoteOn         note_on;
+    MIDI_ControlChange  control_change;
+    MIDI_ProgramChange  program_change;
+    MIDI_PitchBend      pitch_bend;
+    MIDI_AftertouchMono aftertouch_mono;
+    MIDI_AftertouchPoly aftertouch_poly;
     MIDI_SystemMessage  system_msg;
   } as;
 } MIDI_Message;
@@ -150,6 +144,20 @@ bool MIDI_program_change_msg_equals(const MIDI_ProgramChange * lhs, const MIDI_P
 bool MIDI_pitch_bend_msg_equals(const MIDI_PitchBend * lhs, const MIDI_PitchBend * rhs);
 bool MIDI_aftertouch_mono_msg_equals(const MIDI_AftertouchMono * lhs, const MIDI_AftertouchMono * rhs);
 bool MIDI_aftertouch_poly_msg_equals(const MIDI_AftertouchPoly * lhs, const MIDI_AftertouchPoly * rhs);
+
+static inline const char * MIDI_message_type_to_str_lower_case(MIDI_MessageType t) {
+  switch(t) {
+  case MIDI_MSG_TYPE_NOTE_OFF: return "note_off";
+  case MIDI_MSG_TYPE_NOTE_ON: return "note_on";
+  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return "aftertouch_poly";
+  case MIDI_MSG_TYPE_CONTROL_CHANGE: return "control_change";
+  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return "program_change";
+  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return "aftertouch_mono";
+  case MIDI_MSG_TYPE_PITCH_BEND: return "pitch_bend";
+  case MIDI_MSG_TYPE_SYSTEM: return "system_msg";
+  }
+  return "unknown";
+}
 
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   switch(t) {

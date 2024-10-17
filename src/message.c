@@ -102,24 +102,30 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
 
   int len = 0;
 
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_Message{.type=%s, .data=", MIDI_message_type_to_str(msg.type));
+  if(len < max_len) len += snprintf(&str[len], max_len, "MIDI_Message{.type=%s, ", MIDI_message_type_to_str(msg.type));
+
+  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
+    len += snprintf(&str[len], max_len, ".channel=%u, ", msg.channel);
+  }
+
+  if(len < max_len) len += snprintf(&str[len], max_len, ".as.%s=", MIDI_message_type_to_str_lower_case(msg.type));
 
   if(len < max_len) {
     switch(msg.type) {
     case MIDI_MSG_TYPE_NOTE_OFF:
-      len += MIDI_note_off_msg_to_str_buffer(&str[len], (max_len - len), msg.as.channel_msg.data.note_off);
+      len += MIDI_note_off_msg_to_str_buffer(&str[len], (max_len - len), msg.as.note_off);
       break;
     case MIDI_MSG_TYPE_NOTE_ON:
-      len += MIDI_note_on_msg_to_str_buffer(&str[len], (max_len - len), msg.as.channel_msg.data.note_on);
+      len += MIDI_note_on_msg_to_str_buffer(&str[len], (max_len - len), msg.as.note_on);
       break;
     case MIDI_MSG_TYPE_AFTERTOUCH_POLY: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_CONTROL_CHANGE:
-      len += MIDI_control_change_msg_to_str_buffer(&str[len], (max_len - len), msg.as.channel_msg.data.control_change);
+      len += MIDI_control_change_msg_to_str_buffer(&str[len], (max_len - len), msg.as.control_change);
       break;
     case MIDI_MSG_TYPE_PROGRAM_CHANGE: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_AFTERTOUCH_MONO: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_PITCH_BEND:
-      len += MIDI_pitch_bend_msg_to_str_buffer(&str[len], (max_len - len), msg.as.channel_msg.data.pitch_bend);
+      len += MIDI_pitch_bend_msg_to_str_buffer(&str[len], (max_len - len), msg.as.pitch_bend);
       break;
     case MIDI_MSG_TYPE_SYSTEM: len += snprintf(&str[len], (max_len - len), "SYS"); break;
     }
@@ -135,24 +141,26 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 
   int len = 0;
 
+  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
+    len += snprintf(&str[len], (max_len - len), "%u:", msg.channel);
+  }
+
   if(len < max_len) {
     switch(msg.type) {
     case MIDI_MSG_TYPE_NOTE_OFF:
-      len += MIDI_note_off_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.channel_msg.data.note_off);
+      len += MIDI_note_off_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.note_off);
       break;
     case MIDI_MSG_TYPE_NOTE_ON:
-      len += MIDI_note_on_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.channel_msg.data.note_on);
+      len += MIDI_note_on_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.note_on);
       break;
     case MIDI_MSG_TYPE_AFTERTOUCH_POLY: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_CONTROL_CHANGE:
-      len += MIDI_control_change_msg_to_str_buffer_short(&str[len],
-                                                         (max_len - len),
-                                                         msg.as.channel_msg.data.control_change);
+      len += MIDI_control_change_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.control_change);
       break;
     case MIDI_MSG_TYPE_PROGRAM_CHANGE: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_AFTERTOUCH_MONO: len += snprintf(&str[len], (max_len - len), "??"); break;
     case MIDI_MSG_TYPE_PITCH_BEND:
-      len += MIDI_pitch_bend_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.channel_msg.data.pitch_bend);
+      len += MIDI_pitch_bend_msg_to_str_buffer_short(&str[len], (max_len - len), msg.as.pitch_bend);
       break;
     case MIDI_MSG_TYPE_SYSTEM: len += snprintf(&str[len], (max_len - len), "SYS"); break;
     }
@@ -168,23 +176,20 @@ bool MIDI_message_equals(const MIDI_Message * lhs, const MIDI_Message * rhs) {
   if(lhs->type != rhs->type) return false;
 
   if(MIDI_is_channel_type(lhs->type)) {
-    const MIDI_ChannelMessage * lhs_c = &lhs->as.channel_msg;
-    const MIDI_ChannelMessage * rhs_c = &rhs->as.channel_msg;
-
-    if(lhs_c->channel != rhs_c->channel) return false;
+    if(lhs->channel != rhs->channel) return false;
 
     switch(lhs->type) {
-    case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(&lhs_c->data.note_off, &rhs_c->data.note_off);
-    case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(&lhs_c->data.note_on, &rhs_c->data.note_on);
+    case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(&lhs->as.note_off, &rhs->as.note_off);
+    case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(&lhs->as.note_on, &rhs->as.note_on);
     case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
-      return MIDI_aftertouch_poly_msg_equals(&lhs_c->data.aftertouch_poly, &rhs_c->data.aftertouch_poly);
+      return MIDI_aftertouch_poly_msg_equals(&lhs->as.aftertouch_poly, &rhs->as.aftertouch_poly);
     case MIDI_MSG_TYPE_CONTROL_CHANGE:
-      return MIDI_control_change_msg_equals(&lhs_c->data.control_change, &rhs_c->data.control_change);
+      return MIDI_control_change_msg_equals(&lhs->as.control_change, &rhs->as.control_change);
     case MIDI_MSG_TYPE_PROGRAM_CHANGE:
-      return MIDI_program_change_msg_equals(&lhs_c->data.program_change, &rhs_c->data.program_change);
+      return MIDI_program_change_msg_equals(&lhs->as.program_change, &rhs->as.program_change);
     case MIDI_MSG_TYPE_AFTERTOUCH_MONO:
-      return MIDI_aftertouch_mono_msg_equals(&lhs_c->data.aftertouch_mono, &rhs_c->data.aftertouch_mono);
-    case MIDI_MSG_TYPE_PITCH_BEND: return MIDI_pitch_bend_msg_equals(&lhs_c->data.pitch_bend, &rhs_c->data.pitch_bend);
+      return MIDI_aftertouch_mono_msg_equals(&lhs->as.aftertouch_mono, &rhs->as.aftertouch_mono);
+    case MIDI_MSG_TYPE_PITCH_BEND: return MIDI_pitch_bend_msg_equals(&lhs->as.pitch_bend, &rhs->as.pitch_bend);
     default: return false;
     }
 
