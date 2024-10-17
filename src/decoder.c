@@ -90,6 +90,7 @@ static bool                   is_pitch_bend(uint8_t byte);
 static bool                   is_aftertouch_mono(uint8_t byte);
 static bool                   is_aftertouch_poly(uint8_t byte);
 static bool                   is_data_byte(uint8_t byte);
+static bool                   is_system_reset(uint8_t byte);
 
 static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t high_byte);
 
@@ -113,7 +114,12 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   LOG(decoder, byte, "func entry");
 
   if(is_real_time(byte)) {
-    // TODO push realtime message
+    MIDI_INT_buff_push(&(decoder->msg_buffer),
+                       (MIDI_Message){.type = MIDI_MSG_TYPE_SYSTEM, .as.system_msg.type = get_system_type(byte)});
+
+    if(is_system_reset(byte)) decoder->state = ST_INIT;
+
+    LOG(decoder, byte, "handled real time byte");
     return OK;
   }
 
@@ -390,6 +396,10 @@ static bool is_aftertouch_mono(uint8_t byte) { return is_of_type(byte, MIDI_MSG_
 static bool is_aftertouch_poly(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_AFTERTOUCH_POLY); }
 
 static bool is_data_byte(uint8_t byte) { return !is_status(byte); }
+
+static bool is_system_reset(uint8_t byte) {
+  return is_status(byte) && is_system_type(byte) && (get_system_type(byte) == MIDI_MSG_TYPE_SYSTEM_RESET);
+}
 
 static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t msb) {
   const int16_t mid = 0x40 << 7;
