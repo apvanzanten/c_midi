@@ -25,11 +25,11 @@ int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOff{.note=");
+  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOff{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
-  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", .velocity=%u}", msg.velocity);
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", velocity=%u}", msg.velocity);
 
   return len;
 }
@@ -38,11 +38,11 @@ int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOn{.note=");
+  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOn{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
-  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", .velocity=%u}", msg.velocity);
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", velocity=%u}", msg.velocity);
 
   return len;
 }
@@ -50,44 +50,38 @@ int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg) {
 int MIDI_control_change_msg_to_str_buffer(char * str, int max_len, MIDI_ControlChange msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_ControlChange{.control=%s, .value=%u}", MIDI_ctrl_to_str(msg.control), msg.value);
+  return snprintf(str, max_len, "MIDI_ControlChange{control=%s, value=%u}", MIDI_ctrl_to_str(msg.control), msg.value);
 }
 
 int MIDI_program_change_msg_to_str_buffer(char * str, int max_len, MIDI_ProgramChange msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_ProgramChange{.program_id=%u}", msg.program_id);
+  return snprintf(str, max_len, "MIDI_ProgramChange{program_id=%u}", msg.program_id);
 }
 
 int MIDI_pitch_bend_msg_to_str_buffer(char * str, int max_len, MIDI_PitchBend msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_PitchBend{.value=%d}", msg.value);
+  return snprintf(str, max_len, "MIDI_PitchBend{value=%d}", msg.value);
 }
 
 int MIDI_aftertouch_mono_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchMono msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_AftertouchMono{.value=%u}", msg.value);
+  return snprintf(str, max_len, "MIDI_AftertouchMono{value=%u}", msg.value);
 }
 
 int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchPoly msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_AftertouchPoly{.note=");
+  if(len < max_len) len += snprintf(str, max_len, "MIDI_AftertouchPoly{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
-  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", .value=%u}", msg.value);
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), ", value=%u}", msg.value);
 
   return len;
-}
-
-int MIDI_system_msg_to_str_buffer(char * str, int max_len, MIDI_SystemMessage msg) {
-  if(str == NULL) return 0;
-
-  return snprintf(str, max_len, "MIDI_SystemMessage{.type=%s}", MIDI_system_message_type_to_str(msg.type));
 }
 
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg) {
@@ -137,7 +131,7 @@ int MIDI_pitch_bend_msg_to_str_buffer_short(char * str, int max_len, MIDI_PitchB
 int MIDI_aftertouch_mono_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchMono msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "ATM{.value=%u}", msg.value);
+  return snprintf(str, max_len, "ATM{%u}", msg.value);
 }
 
 int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchPoly msg) {
@@ -153,27 +147,22 @@ int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_A
   return len;
 }
 
-int MIDI_system_msg_to_str_buffer_short(char * str, int max_len, MIDI_SystemMessage msg) {
-  if(str == NULL) return 0;
-
-  return snprintf(str, max_len, "SYS{%s}", MIDI_system_message_type_to_str(msg.type));
-}
-
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
   if(str == NULL) return 0;
 
   int len = 0;
 
-  if(len < max_len) len += snprintf(&str[len], max_len, "MIDI_Message{.type=%s, ", MIDI_message_type_to_str(msg.type));
+  if(len < max_len)
+    len += snprintf(&str[len], max_len, "MIDI_Message{type=%s, ", MIDI_message_type_to_str(MIDI_get_type(msg)));
 
-  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
-    len += snprintf(&str[len], max_len, ".channel=%u, ", msg.channel);
+  if((len < max_len) && MIDI_is_channel_type(MIDI_get_type(msg))) {
+    len += snprintf(&str[len], max_len, "channel=%u, ", MIDI_get_channel(msg));
   }
 
-  if(len < max_len) len += snprintf(&str[len], max_len, ".data.%s=", MIDI_message_type_to_str_lower_case(msg.type));
+  if(len < max_len) len += snprintf(&str[len], max_len, "data=");
 
   if(len < max_len) {
-    switch(msg.type) {
+    switch(MIDI_get_type(msg)) {
     case MIDI_MSG_TYPE_NOTE_OFF:
       len += MIDI_note_off_msg_to_str_buffer(&str[len], (max_len - len), msg.data.note_off);
       break;
@@ -195,9 +184,7 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
     case MIDI_MSG_TYPE_PITCH_BEND:
       len += MIDI_pitch_bend_msg_to_str_buffer(&str[len], (max_len - len), msg.data.pitch_bend);
       break;
-    case MIDI_MSG_TYPE_SYSTEM:
-      len += MIDI_system_msg_to_str_buffer(&str[len], (max_len - len), msg.data.system_msg);
-      break;
+    default: len += snprintf(&str[len], max_len, "N/A"); break;
     }
   }
 
@@ -211,12 +198,12 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 
   int len = 0;
 
-  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
-    len += snprintf(&str[len], (max_len - len), "%u:", msg.channel);
+  if((len < max_len) && MIDI_is_channel_type(MIDI_get_type(msg))) {
+    len += snprintf(&str[len], (max_len - len), "%u:", MIDI_get_channel(msg));
   }
 
   if(len < max_len) {
-    switch(msg.type) {
+    switch(MIDI_get_type(msg)) {
     case MIDI_MSG_TYPE_NOTE_OFF:
       len += MIDI_note_off_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.note_off);
       break;
@@ -238,9 +225,13 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
     case MIDI_MSG_TYPE_PITCH_BEND:
       len += MIDI_pitch_bend_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.pitch_bend);
       break;
-    case MIDI_MSG_TYPE_SYSTEM:
-      len += MIDI_system_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.system_msg);
-      break;
+    case MIDI_MSG_TYPE_TIMING_CLOCK: len += snprintf(&str[len], (max_len - len), "TCLK"); break;
+    case MIDI_MSG_TYPE_START: len += snprintf(&str[len], (max_len - len), "START"); break;
+    case MIDI_MSG_TYPE_CONTINUE: len += snprintf(&str[len], (max_len - len), "CONT"); break;
+    case MIDI_MSG_TYPE_STOP: len += snprintf(&str[len], (max_len - len), "STOP"); break;
+    case MIDI_MSG_TYPE_ACTIVE_SENSING: len += snprintf(&str[len], (max_len - len), "ASENS"); break;
+    case MIDI_MSG_TYPE_SYSTEM_RESET: len += snprintf(&str[len], (max_len - len), "RESET"); break;
+    default: len += snprintf(&str[len], (max_len - len), "??"); break;
     }
   }
 
@@ -248,15 +239,16 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 }
 
 bool MIDI_message_equals(const MIDI_Message * lhs, const MIDI_Message * rhs) {
+  // TODO pass by value
   if((lhs == NULL) || (rhs == NULL)) return false;
   if(lhs == rhs) return true;
 
-  if(lhs->type != rhs->type) return false;
+  if(lhs->status_data != rhs->status_data) return false;
 
-  if(MIDI_is_channel_type(lhs->type)) {
-    if(lhs->channel != rhs->channel) return false;
+  if(MIDI_is_real_time_type(MIDI_get_type(*lhs))) return true;
 
-    switch(lhs->type) {
+  if(MIDI_is_channel_type(MIDI_get_type(*lhs))) {
+    switch(MIDI_get_type(*lhs)) {
     case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(&lhs->data.note_off, &rhs->data.note_off);
     case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(&lhs->data.note_on, &rhs->data.note_on);
     case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
@@ -274,9 +266,8 @@ bool MIDI_message_equals(const MIDI_Message * lhs, const MIDI_Message * rhs) {
     return false;
   }
 
-  if(MIDI_is_system_type(lhs->type)) {
-    if(lhs->data.system_msg.type != rhs->data.system_msg.type) return false;
-    if(MIDI_is_real_time_type(lhs->data.system_msg.type)) return true;
+  if(MIDI_is_system_type(MIDI_get_type(*lhs))) {
+    // TODO
 
     return false;
   }
