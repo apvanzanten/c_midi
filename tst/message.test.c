@@ -407,9 +407,8 @@ static Result tst_to_string_short(void) {
 
 #define EXPECT_MSG_EQUAL_TO_COPY(r_p, msg)                                                                             \
   do {                                                                                                                 \
-    MIDI_Message copy_a = (msg);                                                                                       \
-    MIDI_Message copy_b = copy_a;                                                                                      \
-    EXPECT_TRUE((r_p), MIDI_message_equals(&copy_a, &copy_b));                                                         \
+    MIDI_Message copy = (msg);                                                                                         \
+    EXPECT_TRUE((r_p), MIDI_message_equals(copy, copy));                                                               \
   } while(false);
 
 static Result tst_equals_to_copy(void) {
@@ -479,58 +478,58 @@ static Result tst_note_not_equals(void) {
   Result r = PASS;
 
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 1)},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 1)}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 1)},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 1)}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 1)},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 1)}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 1)},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 1)}));
 
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 28}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 28}}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 28}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 28}}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 2),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
   EXPECT_FALSE(&r,
-               MIDI_message_equals(&(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}},
-                                   &(MIDI_Message){.status_data =
-                                                       MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
-                                                   .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
+               MIDI_message_equals((MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}},
+                                   (MIDI_Message){.status_data =
+                                                      MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, 3),
+                                                  .data.note_on = {.note = MIDI_NOTE_A_2, .velocity = 27}}));
 
   return r;
 }
@@ -587,7 +586,7 @@ static Result tst_equals_many(void) {
     for(size_t j = 0; j < num_msgs; j++) {
       MIDI_Message rhs = msgs[j];
 
-      EXPECT_EQ(&r, (i == j), MIDI_message_equals(&lhs, &rhs));
+      EXPECT_EQ(&r, (i == j), MIDI_message_equals(lhs, rhs));
 
       if(HAS_FAILED(&r)) {
         printf("fail %zu ?= %zu\n", i, j);

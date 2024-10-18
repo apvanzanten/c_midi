@@ -478,9 +478,9 @@ static Result tst_multiple_msgs(void * env) {
 
     const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
     const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
-    EXPECT_TRUE(&r, MIDI_message_equals(&peek_res, &pop_res));
+    EXPECT_TRUE(&r, MIDI_message_equals(peek_res, pop_res));
 
-    EXPECT_TRUE(&r, MIDI_message_equals(&expect, &pop_res));
+    EXPECT_TRUE(&r, MIDI_message_equals(expect, pop_res));
 
     if(HAS_FAILED(&r)) {
       {

@@ -147,15 +147,15 @@ int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_A
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);
 
-bool MIDI_message_equals(const MIDI_Message * lhs, const MIDI_Message * rhs);
+bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs);
 
-bool MIDI_note_on_msg_equals(const MIDI_NoteOn * lhs, const MIDI_NoteOn * rhs);
-bool MIDI_note_off_msg_equals(const MIDI_NoteOff * lhs, const MIDI_NoteOff * rhs);
-bool MIDI_control_change_msg_equals(const MIDI_ControlChange * lhs, const MIDI_ControlChange * rhs);
-bool MIDI_program_change_msg_equals(const MIDI_ProgramChange * lhs, const MIDI_ProgramChange * rhs);
-bool MIDI_pitch_bend_msg_equals(const MIDI_PitchBend * lhs, const MIDI_PitchBend * rhs);
-bool MIDI_aftertouch_mono_msg_equals(const MIDI_AftertouchMono * lhs, const MIDI_AftertouchMono * rhs);
-bool MIDI_aftertouch_poly_msg_equals(const MIDI_AftertouchPoly * lhs, const MIDI_AftertouchPoly * rhs);
+bool MIDI_note_on_msg_equals(MIDI_NoteOn lhs, MIDI_NoteOn rhs);
+bool MIDI_note_off_msg_equals(MIDI_NoteOff lhs, MIDI_NoteOff rhs);
+bool MIDI_control_change_msg_equals(MIDI_ControlChange lhs, MIDI_ControlChange rhs);
+bool MIDI_program_change_msg_equals(MIDI_ProgramChange lhs, MIDI_ProgramChange rhs);
+bool MIDI_pitch_bend_msg_equals(MIDI_PitchBend lhs, MIDI_PitchBend rhs);
+bool MIDI_aftertouch_mono_msg_equals(MIDI_AftertouchMono lhs, MIDI_AftertouchMono rhs);
+bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPoly rhs);
 
 static inline const char * MIDI_message_type_to_str_lower_case(MIDI_MessageType t) {
   switch(t) {
