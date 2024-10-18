@@ -95,6 +95,24 @@ typedef struct MIDI_AftertouchPoly {
 
 typedef uint8_t MIDI_Channel;
 
+typedef enum MIDI_QuarterFrameType {
+  MIDI_QF_TYPE_FRAME_LOW_NIBBLE = 0,
+  MIDI_QF_TYPE_FRAME_HIGH_NIBBLE,
+  MIDI_QF_TYPE_SECONDS_LOW_NIBBLE,
+  MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE,
+  MIDI_QF_TYPE_MINUTES_LOW_NIBBLE,
+  MIDI_QF_TYPE_MINUTES_HIGH_NIBBLE,
+  MIDI_QF_TYPE_HOURS_LOW_NIBBLE,
+  MIDI_QF_TYPE_HOURS_HIGH_NIBBLE,
+} MIDI_QuarterFrameType;
+
+static inline const char * MIDI_quarter_frame_type_to_str(MIDI_QuarterFrameType type);
+
+typedef struct MIDI_QuarterFrame {
+  uint8_t type : 4; // value of MIDI_QuarterFrameType
+  uint8_t value : 4;
+} MIDI_QuarterFrame;
+
 typedef struct MIDI_Message {
   bool         is_non_standard_msg : 1; // currently unused, reserved for hacking our way into supporting sysex
   uint8_t      type : 7;                // value of MIDI_MessageType
@@ -109,6 +127,7 @@ typedef struct MIDI_Message {
     MIDI_PitchBend      pitch_bend;
     MIDI_AftertouchMono aftertouch_mono;
     MIDI_AftertouchPoly aftertouch_poly;
+    MIDI_QuarterFrame   quarter_frame;
   } data;
 } MIDI_Message;
 
@@ -119,6 +138,7 @@ int MIDI_program_change_msg_to_str_buffer(char * str, int max_len, MIDI_ProgramC
 int MIDI_pitch_bend_msg_to_str_buffer(char * str, int max_len, MIDI_PitchBend msg);
 int MIDI_aftertouch_mono_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchMono msg);
 int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchPoly msg);
+int MIDI_quarter_frame_msg_to_str_buffer(char * str, int max_len, MIDI_QuarterFrame msg);
 
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOn msg);
@@ -127,6 +147,7 @@ int MIDI_program_change_msg_to_str_buffer_short(char * str, int max_len, MIDI_Pr
 int MIDI_pitch_bend_msg_to_str_buffer_short(char * str, int max_len, MIDI_PitchBend msg);
 int MIDI_aftertouch_mono_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchMono msg);
 int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchPoly msg);
+int MIDI_quarter_frame_msg_to_str_buffer_short(char * str, int max_len, MIDI_QuarterFrame msg);
 
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);
@@ -140,31 +161,7 @@ bool MIDI_program_change_msg_equals(MIDI_ProgramChange lhs, MIDI_ProgramChange r
 bool MIDI_pitch_bend_msg_equals(MIDI_PitchBend lhs, MIDI_PitchBend rhs);
 bool MIDI_aftertouch_mono_msg_equals(MIDI_AftertouchMono lhs, MIDI_AftertouchMono rhs);
 bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPoly rhs);
-
-static inline const char * MIDI_message_type_to_str_lower_case(MIDI_MessageType t) {
-  switch(t) {
-  case MIDI_MSG_TYPE_NOTE_OFF: return "note_off";
-  case MIDI_MSG_TYPE_NOTE_ON: return "note_on";
-  case MIDI_MSG_TYPE_AFTERTOUCH_POLY: return "aftertouch_poly";
-  case MIDI_MSG_TYPE_CONTROL_CHANGE: return "control_change";
-  case MIDI_MSG_TYPE_PROGRAM_CHANGE: return "program_change";
-  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: return "aftertouch_mono";
-  case MIDI_MSG_TYPE_PITCH_BEND: return "pitch_bend";
-  case MIDI_MSG_TYPE_MTC_QUARTER_FRAME: return "mtc_quarter_frame";
-  case MIDI_MSG_TYPE_SONG_POSITION_POINTER: return "song_position_pointer";
-  case MIDI_MSG_TYPE_SONG_SELECT: return "song_select";
-  case MIDI_MSG_TYPE_TUNE_REQUEST: return "tune_request";
-  case MIDI_MSG_TYPE_SYSEX_START: return "sysex_start";
-  case MIDI_MSG_TYPE_SYSEX_STOP: return "sysex_stop";
-  case MIDI_MSG_TYPE_TIMING_CLOCK: return "timing_clock";
-  case MIDI_MSG_TYPE_START: return "start";
-  case MIDI_MSG_TYPE_CONTINUE: return "continue";
-  case MIDI_MSG_TYPE_STOP: return "stop";
-  case MIDI_MSG_TYPE_ACTIVE_SENSING: return "active_sensing";
-  case MIDI_MSG_TYPE_SYSTEM_RESET: return "system_reset";
-  }
-  return "unknown";
-}
+bool MIDI_quarter_frame_msg_equals(MIDI_QuarterFrame lhs, MIDI_QuarterFrame rhs);
 
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   switch(t) {
@@ -232,6 +229,34 @@ static inline bool MIDI_is_real_time_type(MIDI_MessageType type) {
   case MIDI_MSG_TYPE_SYSTEM_RESET: return true;
   default: return false;
   }
+}
+
+static inline const char * MIDI_quarter_frame_type_to_str(MIDI_QuarterFrameType type) {
+  switch(type) {
+  case MIDI_QF_TYPE_FRAME_LOW_NIBBLE: return "FRAME_LOW_NIBBLE";
+  case MIDI_QF_TYPE_FRAME_HIGH_NIBBLE: return "FRAME_HIGH_NIBBLE";
+  case MIDI_QF_TYPE_SECONDS_LOW_NIBBLE: return "SECONDS_LOW_NIBBLE";
+  case MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE: return "SECONDS_HIGH_NIBBLE";
+  case MIDI_QF_TYPE_MINUTES_LOW_NIBBLE: return "MINUTES_LOW_NIBBLE";
+  case MIDI_QF_TYPE_MINUTES_HIGH_NIBBLE: return "MINUTES_HIGH_NIBBLE";
+  case MIDI_QF_TYPE_HOURS_LOW_NIBBLE: return "HOURS_LOW_NIBBLE";
+  case MIDI_QF_TYPE_HOURS_HIGH_NIBBLE: return "HOURS_HIGH_NIBBLE";
+  }
+  return "UNKNOWN";
+}
+
+static inline const char * MIDI_quarter_frame_type_to_str_short(MIDI_QuarterFrameType type) {
+  switch(type) {
+  case MIDI_QF_TYPE_FRAME_LOW_NIBBLE: return "FRM_L";
+  case MIDI_QF_TYPE_FRAME_HIGH_NIBBLE: return "FRM_H";
+  case MIDI_QF_TYPE_SECONDS_LOW_NIBBLE: return "SEC_L";
+  case MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE: return "SEC_H";
+  case MIDI_QF_TYPE_MINUTES_LOW_NIBBLE: return "MIN_L";
+  case MIDI_QF_TYPE_MINUTES_HIGH_NIBBLE: return "MIN_H";
+  case MIDI_QF_TYPE_HOURS_LOW_NIBBLE: return "HRS_L";
+  case MIDI_QF_TYPE_HOURS_HIGH_NIBBLE: return "HRS_H";
+  }
+  return "UNKNOWN";
 }
 
 #endif

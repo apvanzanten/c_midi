@@ -31,7 +31,7 @@
 static Result tst_size(void) {
   Result r = PASS;
 
-  // TODO static assert instead
+  // we don't static assert this, as this test can give quicker feedback on what the size actually is.
 
   EXPECT_EQ(&r, sizeof(MIDI_NoteOff), 2);
   EXPECT_EQ(&r, sizeof(MIDI_NoteOn), 2);
@@ -40,6 +40,7 @@ static Result tst_size(void) {
   EXPECT_EQ(&r, sizeof(MIDI_PitchBend), 2);
   EXPECT_EQ(&r, sizeof(MIDI_AftertouchMono), 1);
   EXPECT_EQ(&r, sizeof(MIDI_AftertouchPoly), 2);
+  EXPECT_EQ(&r, sizeof(MIDI_QuarterFrame), 1);
   EXPECT_EQ(&r, sizeof(MIDI_Message), 4);
 
   if(HAS_FAILED(&r)) {
@@ -50,6 +51,7 @@ static Result tst_size(void) {
     printf("%s=%zu\n", "sizeof(MIDI_PitchBend)", sizeof(MIDI_PitchBend));
     printf("%s=%zu\n", "sizeof(MIDI_AftertouchMono)", sizeof(MIDI_AftertouchMono));
     printf("%s=%zu\n", "sizeof(MIDI_AftertouchPoly)", sizeof(MIDI_AftertouchPoly));
+    printf("%s=%zu\n", "sizeof(MIDI_QuarterFrame)", sizeof(MIDI_QuarterFrame));
     printf("%s=%zu\n", "sizeof(MIDI_Message)", sizeof(MIDI_Message));
   }
 
@@ -204,6 +206,20 @@ static Result tst_to_string(void) {
     EXPECT_EQ(&r,
               strlen(expect_str),
               MIDI_message_to_str_buffer(str, 1024, (MIDI_Message){.type = MIDI_MSG_TYPE_SYSTEM_RESET}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[] =
+        "MIDI_Message{type=MTC_QUARTER_FRAME, data=QuarterFrame{type=SECONDS_LOW_NIBBLE, value=13}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+                                                        .data.quarter_frame = {.type  = MIDI_QF_TYPE_SECONDS_LOW_NIBBLE,
+                                                                               .value = 13}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -363,6 +379,20 @@ static Result tst_to_string_short(void) {
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "QF{MIN_L,10}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+                                                              .data.quarter_frame =
+                                                                  {.type  = MIDI_QF_TYPE_MINUTES_LOW_NIBBLE,
+                                                                   .value = 10}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
 
   return r;
 }
@@ -437,6 +467,11 @@ static Result tst_equals_to_copy(void) {
                                            .data.pitch_bend.value = 3}));
 
   EXPECT_MSG_EQUAL_TO_COPY(&r, ((MIDI_Message){.type = MIDI_MSG_TYPE_TIMING_CLOCK}));
+
+  EXPECT_MSG_EQUAL_TO_COPY(&r,
+                           ((MIDI_Message){.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+                                           .data.quarter_frame = {.type  = MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE,
+                                                                  .value = 3}}));
 
   return r;
 }
@@ -556,6 +591,13 @@ static Result tst_equals_many(void) {
       {.type = MIDI_MSG_TYPE_STOP},
       {.type = MIDI_MSG_TYPE_ACTIVE_SENSING},
       {.type = MIDI_MSG_TYPE_SYSTEM_RESET},
+
+      {.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+       .data.quarter_frame = {.type = MIDI_QF_TYPE_HOURS_HIGH_NIBBLE, .value = 14}},
+      {.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+       .data.quarter_frame = {.type = MIDI_QF_TYPE_FRAME_HIGH_NIBBLE, .value = 14}},
+      {.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+       .data.quarter_frame = {.type = MIDI_QF_TYPE_FRAME_HIGH_NIBBLE, .value = 8}},
   };
 
   const size_t num_msgs = sizeof(msgs) / sizeof(msgs[0]);

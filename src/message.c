@@ -84,6 +84,19 @@ int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_Afterto
   return len;
 }
 
+int MIDI_quarter_frame_msg_to_str_buffer(char * str, int max_len, MIDI_QuarterFrame msg) {
+  if(str == NULL) return 0;
+
+  int len = 0;
+  if(len < max_len) len += snprintf(str, max_len, "QuarterFrame{");
+
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), "type=%s, ", MIDI_quarter_frame_type_to_str(msg.type));
+
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), "value=%u}", msg.value);
+
+  return len;
+}
+
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg) {
   if(str == NULL) return 0;
 
@@ -147,6 +160,19 @@ int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_A
   return len;
 }
 
+int MIDI_quarter_frame_msg_to_str_buffer_short(char * str, int max_len, MIDI_QuarterFrame msg) {
+  if(str == NULL) return 0;
+
+  int len = 0;
+  if(len < max_len) len += snprintf(str, max_len, "QF{");
+
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), "%s,", MIDI_quarter_frame_type_to_str_short(msg.type));
+
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), "%u}", msg.value);
+
+  return len;
+}
+
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
   if(str == NULL) return 0;
 
@@ -182,6 +208,9 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
       break;
     case MIDI_MSG_TYPE_PITCH_BEND:
       len += MIDI_pitch_bend_msg_to_str_buffer(&str[len], (max_len - len), msg.data.pitch_bend);
+      break;
+    case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
+      len += MIDI_quarter_frame_msg_to_str_buffer(&str[len], (max_len - len), msg.data.quarter_frame);
       break;
     default: len += snprintf(&str[len], max_len, "N/A"); break;
     }
@@ -224,6 +253,9 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
     case MIDI_MSG_TYPE_PITCH_BEND:
       len += MIDI_pitch_bend_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.pitch_bend);
       break;
+    case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
+      len += MIDI_quarter_frame_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.quarter_frame);
+      break;
     case MIDI_MSG_TYPE_TIMING_CLOCK: len += snprintf(&str[len], (max_len - len), "TCLK"); break;
     case MIDI_MSG_TYPE_START: len += snprintf(&str[len], (max_len - len), "START"); break;
     case MIDI_MSG_TYPE_CONTINUE: len += snprintf(&str[len], (max_len - len), "CONT"); break;
@@ -257,16 +289,16 @@ bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
     case MIDI_MSG_TYPE_PITCH_BEND: return MIDI_pitch_bend_msg_equals(lhs.data.pitch_bend, rhs.data.pitch_bend);
     default: return false;
     }
-
-    return false;
   }
 
   if(MIDI_is_system_type(lhs.type)) {
     if(MIDI_is_real_time_type(lhs.type)) return true;
 
-    // TODO
-
-    return false;
+    switch(lhs.type) {
+    case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
+      return MIDI_quarter_frame_msg_equals(lhs.data.quarter_frame, rhs.data.quarter_frame);
+    default: return false;
+    }
   }
 
   return false;
@@ -296,4 +328,8 @@ bool MIDI_aftertouch_mono_msg_equals(MIDI_AftertouchMono lhs, MIDI_AftertouchMon
 
 bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPoly rhs) {
   return (lhs.note == rhs.note) && (lhs.value == rhs.value);
+}
+
+bool MIDI_quarter_frame_msg_equals(MIDI_QuarterFrame lhs, MIDI_QuarterFrame rhs) {
+  return (lhs.type == rhs.type) && (lhs.value == rhs.value);
 }
