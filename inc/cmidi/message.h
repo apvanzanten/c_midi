@@ -29,7 +29,7 @@
 typedef enum MIDI_MessageType {
   // NOTE excludes status bit
 
-  // channel types, all with zero nibble to make space for channel
+  // channel types
   MIDI_MSG_TYPE_NOTE_OFF        = 0x00,
   MIDI_MSG_TYPE_NOTE_ON         = 0x10,
   MIDI_MSG_TYPE_AFTERTOUCH_POLY = 0x20,
@@ -96,8 +96,11 @@ typedef struct MIDI_AftertouchPoly {
 typedef uint8_t MIDI_Channel;
 
 typedef struct MIDI_Message {
-  bool    reserved : 1; // reserved for hacking our way into supporting sysex
-  uint8_t status_data : 7;
+  bool         is_non_standard_msg : 1; // currently unused, reserved for hacking our way into supporting sysex
+  uint8_t      type : 7;                // value of MIDI_MessageType
+  MIDI_Channel channel : 5;             // [1,16]
+  uint8_t      reserved : 3;            // reserved for who knows what
+
   union {
     MIDI_NoteOff        note_off;
     MIDI_NoteOn         note_on;
@@ -108,25 +111,6 @@ typedef struct MIDI_Message {
     MIDI_AftertouchPoly aftertouch_poly;
   } data;
 } MIDI_Message;
-
-// NOTE excludes status bit
-static inline uint8_t MIDI_make_channel_status_data(MIDI_MessageType type, MIDI_Channel channel);
-static inline uint8_t MIDI_make_system_status_data(MIDI_MessageType type);
-
-static inline MIDI_MessageType MIDI_get_type(MIDI_Message msg);
-static inline MIDI_MessageType MIDI_get_type_from_status_data(uint8_t status_data);
-static inline MIDI_Channel     MIDI_get_channel(MIDI_Message msg);
-static inline MIDI_Channel     MIDI_get_channel_from_status_data(uint8_t status_data);
-
-static inline MIDI_Message MIDI_make_note_on_msg(MIDI_Channel channel, MIDI_NoteOn data);
-static inline MIDI_Message MIDI_make_note_off_msg(MIDI_Channel channel, MIDI_NoteOff data);
-static inline MIDI_Message MIDI_make_control_change_msg(MIDI_Channel channel, MIDI_ControlChange data);
-static inline MIDI_Message MIDI_make_program_change_msg(MIDI_Channel channel, MIDI_ProgramChange data);
-static inline MIDI_Message MIDI_make_pitch_bend_msg(MIDI_Channel channel, MIDI_PitchBend data);
-static inline MIDI_Message MIDI_make_aftertouch_mono_msg(MIDI_Channel channel, MIDI_AftertouchMono data);
-static inline MIDI_Message MIDI_make_aftertouch_poly_msg(MIDI_Channel channel, MIDI_AftertouchPoly data);
-
-static inline MIDI_Message MIDI_make_real_time_msg(MIDI_MessageType type);
 
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
@@ -248,62 +232,6 @@ static inline bool MIDI_is_real_time_type(MIDI_MessageType type) {
   case MIDI_MSG_TYPE_SYSTEM_RESET: return true;
   default: return false;
   }
-}
-
-static inline uint8_t MIDI_make_channel_status_data(MIDI_MessageType type, MIDI_Channel channel) {
-  // NOTE excludes status bit
-  return ((type & 0x70) | ((channel - 1) & 0xf));
-}
-
-static inline uint8_t MIDI_make_system_status_data(MIDI_MessageType type) {
-  // NOTE excludes status bit
-  return (type & 0x7f);
-}
-static inline MIDI_Channel MIDI_get_channel_from_status_data(uint8_t status_data) { return (status_data & 0xf) + 1; }
-static inline MIDI_Channel MIDI_get_channel(MIDI_Message msg) {
-  return MIDI_get_channel_from_status_data(msg.status_data);
-}
-
-static inline MIDI_MessageType MIDI_get_type_from_status_data(uint8_t status_data) {
-  const bool is_system_msg = ((status_data & 0x70) == 0x70);
-  return (is_system_msg ? (status_data & 0x7f) : (status_data & 0x70));
-}
-
-static inline MIDI_MessageType MIDI_get_type(MIDI_Message msg) {
-  return MIDI_get_type_from_status_data(msg.status_data);
-}
-
-static inline MIDI_Message MIDI_make_note_on_msg(MIDI_Channel channel, MIDI_NoteOn data) {
-  return (MIDI_Message){.status_data  = MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON, channel),
-                        .data.note_on = data};
-}
-static inline MIDI_Message MIDI_make_note_off_msg(MIDI_Channel channel, MIDI_NoteOff data) {
-  return (MIDI_Message){.status_data   = MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF, channel),
-                        .data.note_off = data};
-}
-static inline MIDI_Message MIDI_make_control_change_msg(MIDI_Channel channel, MIDI_ControlChange data) {
-  return (MIDI_Message){.status_data         = MIDI_make_channel_status_data(MIDI_MSG_TYPE_CONTROL_CHANGE, channel),
-                        .data.control_change = data};
-}
-static inline MIDI_Message MIDI_make_program_change_msg(MIDI_Channel channel, MIDI_ProgramChange data) {
-  return (MIDI_Message){.status_data         = MIDI_make_channel_status_data(MIDI_MSG_TYPE_PROGRAM_CHANGE, channel),
-                        .data.program_change = data};
-}
-static inline MIDI_Message MIDI_make_pitch_bend_msg(MIDI_Channel channel, MIDI_PitchBend data) {
-  return (MIDI_Message){.status_data     = MIDI_make_channel_status_data(MIDI_MSG_TYPE_PITCH_BEND, channel),
-                        .data.pitch_bend = data};
-}
-static inline MIDI_Message MIDI_make_aftertouch_mono_msg(MIDI_Channel channel, MIDI_AftertouchMono data) {
-  return (MIDI_Message){.status_data          = MIDI_make_channel_status_data(MIDI_MSG_TYPE_AFTERTOUCH_MONO, channel),
-                        .data.aftertouch_mono = data};
-}
-static inline MIDI_Message MIDI_make_aftertouch_poly_msg(MIDI_Channel channel, MIDI_AftertouchPoly data) {
-  return (MIDI_Message){.status_data          = MIDI_make_channel_status_data(MIDI_MSG_TYPE_AFTERTOUCH_POLY, channel),
-                        .data.aftertouch_poly = data};
-}
-
-static inline MIDI_Message MIDI_make_real_time_msg(MIDI_MessageType type) {
-  return (MIDI_Message){.status_data = MIDI_make_system_status_data(type)};
 }
 
 #endif

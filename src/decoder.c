@@ -23,8 +23,6 @@
 
 #define OK STAT_OK
 
-#define NOTE_OFF_DEFAULT_VELOCITY 63
-
 #define LOGGING_ENABLED 0
 
 #if LOGGING_ENABLED
@@ -87,7 +85,6 @@ static bool             is_aftertouch_mono(uint8_t byte);
 static bool             is_aftertouch_poly(uint8_t byte);
 static bool             is_data_byte(uint8_t byte);
 static bool             is_system_reset(uint8_t byte);
-static uint8_t          get_status_data(uint8_t status_byte);
 
 static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t high_byte);
 
@@ -111,7 +108,7 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   LOG(decoder, byte, "func entry");
 
   if(is_real_time(byte)) {
-    MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.status_data = get_status_data(byte)});
+    MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
 
     if(is_system_reset(byte)) decoder->state = ST_INIT;
 
@@ -172,8 +169,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data  = MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_ON,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
+                                          .channel      = decoder->current_channel,
                                           .data.note_on = {.note = decoder->current_note, .velocity = byte}});
 
         decoder->state = ST_RUNNING_NOTE_ON; // successfully parsed note, we may get another
@@ -203,8 +200,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data   = MIDI_make_channel_status_data(MIDI_MSG_TYPE_NOTE_OFF,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
+                                          .channel       = decoder->current_channel,
                                           .data.note_off = {.note = decoder->current_note, .velocity = byte}});
 
         decoder->state = ST_RUNNING_NOTE_OFF; // successfully parsed note, we may get another
@@ -234,8 +231,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data = MIDI_make_channel_status_data(MIDI_MSG_TYPE_CONTROL_CHANGE,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type    = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                          .channel = decoder->current_channel,
 
                                           .data.control_change = {.control = decoder->current_control, .value = byte}});
 
@@ -252,8 +249,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data = MIDI_make_channel_status_data(MIDI_MSG_TYPE_PROGRAM_CHANGE,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type    = MIDI_MSG_TYPE_PROGRAM_CHANGE,
+                                          .channel = decoder->current_channel,
 
                                           .data.program_change.program_id = byte});
 
@@ -283,8 +280,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data     = MIDI_make_channel_status_data(MIDI_MSG_TYPE_PITCH_BEND,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
+                                          .channel         = decoder->current_channel,
                                           .data.pitch_bend = {
                                               .value = make_pitch_bend_value(decoder->pitch_bend_lsb, byte)}});
 
@@ -301,8 +298,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data = MIDI_make_channel_status_data(MIDI_MSG_TYPE_AFTERTOUCH_MONO,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type                       = MIDI_MSG_TYPE_AFTERTOUCH_MONO,
+                                          .channel                    = decoder->current_channel,
                                           .data.aftertouch_mono.value = byte});
 
         // stay in same running state
@@ -331,8 +328,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
         MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.status_data = MIDI_make_channel_status_data(MIDI_MSG_TYPE_AFTERTOUCH_POLY,
-                                                                                       decoder->current_channel),
+                           (MIDI_Message){.type                 = MIDI_MSG_TYPE_AFTERTOUCH_POLY,
+                                          .channel              = decoder->current_channel,
                                           .data.aftertouch_poly = {.note = decoder->current_note, .value = byte}});
 
         decoder->state = ST_RUNNING_AFTERTOUCH_POLY; // parsed OK, maybe we get another
@@ -394,5 +391,3 @@ static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t msb) {
   const int16_t mid = 0x40 << 7;
   return (((int16_t)(msb) << 7) | (int16_t)lsb) - mid;
 }
-
-static uint8_t get_status_data(uint8_t status_byte) { return status_byte & 0x7f; }

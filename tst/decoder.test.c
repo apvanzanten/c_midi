@@ -68,14 +68,14 @@ static Result tst_note_on(void * env) {
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
   const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, MIDI_get_type(peek_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(peek_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, peek_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, peek_res.channel);
   EXPECT_EQ(&r, note, peek_res.data.note_on.note);
   EXPECT_EQ(&r, 100, peek_res.data.note_on.velocity);
 
   const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, MIDI_get_type(pop_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, pop_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
   EXPECT_EQ(&r, note, pop_res.data.note_on.note);
   EXPECT_EQ(&r, 100, pop_res.data.note_on.velocity);
 
@@ -102,14 +102,14 @@ static Result tst_note_on_zero_velocity(void * env) {
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
   const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, MIDI_get_type(peek_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(peek_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, peek_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, peek_res.channel);
   EXPECT_EQ(&r, note, peek_res.data.note_on.note);
   EXPECT_EQ(&r, 0, peek_res.data.note_on.velocity);
 
   const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, MIDI_get_type(pop_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_NOTE_ON, pop_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
   EXPECT_EQ(&r, note, pop_res.data.note_on.note);
   EXPECT_EQ(&r, 0, pop_res.data.note_on.velocity);
 
@@ -133,13 +133,13 @@ static Result tst_aftertouch_mono(void * env) {
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
   const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_MONO, MIDI_get_type(peek_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(peek_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_MONO, peek_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, peek_res.channel);
   EXPECT_EQ(&r, value_byte, peek_res.data.aftertouch_mono.value);
 
   const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_MONO, MIDI_get_type(pop_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_MONO, pop_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
   EXPECT_EQ(&r, value_byte, pop_res.data.aftertouch_mono.value);
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
@@ -164,14 +164,14 @@ static Result tst_aftertouch_poly(void * env) {
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
   const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_POLY, MIDI_get_type(peek_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(peek_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_POLY, peek_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, peek_res.channel);
   EXPECT_EQ(&r, note_byte, peek_res.data.aftertouch_poly.note);
   EXPECT_EQ(&r, value_byte, peek_res.data.aftertouch_poly.value);
 
   const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_POLY, MIDI_get_type(pop_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_AFTERTOUCH_POLY, pop_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
   EXPECT_EQ(&r, note_byte, pop_res.data.aftertouch_poly.note);
   EXPECT_EQ(&r, value_byte, pop_res.data.aftertouch_poly.value);
 
@@ -195,13 +195,13 @@ static Result tst_program_change(void * env) {
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
   const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, MIDI_get_type(peek_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(peek_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, peek_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, peek_res.channel);
   EXPECT_EQ(&r, program_id, peek_res.data.program_change.program_id);
 
   const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-  EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, MIDI_get_type(pop_res));
-  EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+  EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, pop_res.type);
+  EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
   EXPECT_EQ(&r, program_id, pop_res.data.program_change.program_id);
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
@@ -232,32 +232,32 @@ static Result tst_real_time(void * env) {
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_TIMING_CLOCK, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_TIMING_CLOCK, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_START, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_START, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_CONTINUE, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_CONTINUE, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_STOP, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_STOP, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_ACTIVE_SENSING, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_ACTIVE_SENSING, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_SYSTEM_RESET, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_SYSTEM_RESET, pop_res.type);
   }
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
@@ -301,39 +301,39 @@ static Result tst_real_time_with_running_status(void * env) {
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_TIMING_CLOCK, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_TIMING_CLOCK, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_START, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_START, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_CONTINUE, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_CONTINUE, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_STOP, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_STOP, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_ACTIVE_SENSING, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_ACTIVE_SENSING, pop_res.type);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, MIDI_get_type(pop_res));
-    EXPECT_EQ(&r, TEST_CHANNEL_1, MIDI_get_channel(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_PROGRAM_CHANGE, pop_res.type);
+    EXPECT_EQ(&r, TEST_CHANNEL_1, pop_res.channel);
     EXPECT_EQ(&r, program_id, pop_res.data.program_change.program_id);
   }
 
   {
     const MIDI_Message pop_res = MIDI_decoder_pop_msg(decoder);
-    EXPECT_EQ(&r, MIDI_MSG_TYPE_SYSTEM_RESET, MIDI_get_type(pop_res));
+    EXPECT_EQ(&r, MIDI_MSG_TYPE_SYSTEM_RESET, pop_res.type);
   }
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
@@ -415,51 +415,51 @@ static Result tst_multiple_msgs(void * env) {
 
   const MIDI_Message expect_msgs[] = {
       // clang-format off
-      MIDI_make_note_on_msg(TEST_CHANNEL_1, (MIDI_NoteOn){.note = MIDI_NOTE_A_3, .velocity = 27}),
-      MIDI_make_note_on_msg(TEST_CHANNEL_1, (MIDI_NoteOn){.note = MIDI_NOTE_D_5, .velocity = 40}),
-      MIDI_make_note_on_msg(TEST_CHANNEL_1, (MIDI_NoteOn){.note = MIDI_NOTE_A_3, .velocity = 0}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_START),
-      MIDI_make_note_on_msg(TEST_CHANNEL_1, (MIDI_NoteOn){.note = MIDI_NOTE_F_2, .velocity = 29}),
-      MIDI_make_note_on_msg(TEST_CHANNEL_1, (MIDI_NoteOn){.note = MIDI_NOTE_G_8, .velocity = 20}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_note_on_msg(TEST_CHANNEL_2, (MIDI_NoteOn){.note = MIDI_NOTE_A_3, .velocity = 99}),
-      MIDI_make_note_on_msg(TEST_CHANNEL_2, (MIDI_NoteOn){.note = MIDI_NOTE_A_4, .velocity = 21}),
-      MIDI_make_note_off_msg(TEST_CHANNEL_1, (MIDI_NoteOff){.note = MIDI_NOTE_D_5, .velocity = 100}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_note_off_msg(TEST_CHANNEL_1, (MIDI_NoteOff){.note = MIDI_NOTE_F_2, .velocity = 29}),
-      MIDI_make_note_on_msg(TEST_CHANNEL_2, (MIDI_NoteOn){.note = MIDI_NOTE_G_3, .velocity = 99}),
-      MIDI_make_control_change_msg(TEST_CHANNEL_1, (MIDI_ControlChange){.control = MIDI_CTRL_ATTACK_TIME, .value = 29}),
-      MIDI_make_control_change_msg(TEST_CHANNEL_1, (MIDI_ControlChange){.control = MIDI_CTRL_CUTOFF_FREQUENCY, .value = 99}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_control_change_msg(TEST_CHANNEL_1, (MIDI_ControlChange){.control = MIDI_CTRL_EFFECT1, .value = 20}),
-      MIDI_make_program_change_msg(TEST_CHANNEL_2, (MIDI_ProgramChange){.program_id = 3}),
-      MIDI_make_program_change_msg(TEST_CHANNEL_2, (MIDI_ProgramChange){.program_id = 28}),
-      MIDI_make_program_change_msg(TEST_CHANNEL_2, (MIDI_ProgramChange){.program_id = 83}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_note_off_msg(TEST_CHANNEL_1, (MIDI_NoteOff){.note = MIDI_NOTE_G_8, .velocity = 19}),
-      MIDI_make_control_change_msg(TEST_CHANNEL_2, (MIDI_ControlChange){.control = MIDI_CTRL_MOD_WHEEL, .value = 29}),
-      MIDI_make_program_change_msg(TEST_CHANNEL_1, (MIDI_ProgramChange){.program_id = 99}),
-      MIDI_make_control_change_msg(TEST_CHANNEL_1, (MIDI_ControlChange){.control = MIDI_CTRL_GENERAL_A, .value = 101}),
-      MIDI_make_control_change_msg(TEST_CHANNEL_1, (MIDI_ControlChange){.control = MIDI_CTRL_GENERAL_A_LSB, .value = 29}),
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_1, (MIDI_PitchBend){.value = 8000}),
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_2, (MIDI_PitchBend){.value = -2}),
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_1, (MIDI_PitchBend){.value = -5000}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_1, (MIDI_PitchBend){.value = 0}),
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_1, (MIDI_PitchBend){.value = 5}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_TIMING_CLOCK),
-      MIDI_make_aftertouch_mono_msg(TEST_CHANNEL_1, (MIDI_AftertouchMono){.value = 4}),
-      MIDI_make_aftertouch_mono_msg(TEST_CHANNEL_2, (MIDI_AftertouchMono){.value = 7}),
-      MIDI_make_aftertouch_mono_msg(TEST_CHANNEL_2, (MIDI_AftertouchMono){.value = 24}),
-      MIDI_make_aftertouch_mono_msg(TEST_CHANNEL_2, (MIDI_AftertouchMono){.value = 28}),
-      MIDI_make_program_change_msg(TEST_CHANNEL_2, (MIDI_ProgramChange){.program_id = 27}),
-      MIDI_make_aftertouch_poly_msg(TEST_CHANNEL_1, (MIDI_AftertouchPoly){.note= MIDI_NOTE_G_8, .value=15}), 
-      MIDI_make_aftertouch_poly_msg(TEST_CHANNEL_1, (MIDI_AftertouchPoly){.note= MIDI_NOTE_G_7, .value=18}), 
-      MIDI_make_aftertouch_poly_msg(TEST_CHANNEL_1, (MIDI_AftertouchPoly){.note= MIDI_NOTE_F_3, .value=88}), 
-      MIDI_make_pitch_bend_msg(TEST_CHANNEL_1, (MIDI_PitchBend){.value = 293}),
-      MIDI_make_aftertouch_poly_msg(TEST_CHANNEL_2, (MIDI_AftertouchPoly){.note= MIDI_NOTE_A_4, .value=37}),
-      MIDI_make_real_time_msg(MIDI_MSG_TYPE_SYSTEM_RESET),
-      MIDI_make_aftertouch_poly_msg(TEST_CHANNEL_2, (MIDI_AftertouchPoly){.note= MIDI_NOTE_G_4, .value=3}),
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_D_5, .velocity = 40}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 0}} ,
+      {.type = MIDI_MSG_TYPE_START},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_F_2, .velocity = 29}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_G_8, .velocity = 20}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_2, .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 99}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_2, .data.note_on = {.note = MIDI_NOTE_A_4, .velocity = 21}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = TEST_CHANNEL_1, .data.note_off = {.note = MIDI_NOTE_D_5, .velocity = 100}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = TEST_CHANNEL_1, .data.note_off = {.note = MIDI_NOTE_F_2, .velocity = 29}} ,
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_2, .data.note_on = {.note = MIDI_NOTE_G_3, .velocity = 99}} ,
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_1, .data.control_change = {.control = MIDI_CTRL_ATTACK_TIME, .value = 29}} ,
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_1, .data.control_change = {.control = MIDI_CTRL_CUTOFF_FREQUENCY, .value = 99}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_1, .data.control_change = {.control = MIDI_CTRL_EFFECT1, .value = 20}} ,
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_2, .data.program_change = {.program_id = 3}} ,
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_2, .data.program_change = {.program_id = 28}} ,
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_2, .data.program_change = {.program_id = 83}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = TEST_CHANNEL_1, .data.note_off = {.note = MIDI_NOTE_G_8, .velocity = 19}} ,
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_2, .data.control_change = {.control = MIDI_CTRL_MOD_WHEEL, .value = 29}} ,
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_1, .data.program_change = {.program_id = 99}} ,
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_1, .data.control_change = {.control = MIDI_CTRL_GENERAL_A, .value = 101}} ,
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = TEST_CHANNEL_1, .data.control_change = {.control = MIDI_CTRL_GENERAL_A_LSB, .value = 29}} ,
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = 8000}} ,
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_2, .data.pitch_bend = {.value = -2}} ,
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = -5000}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = 0}} ,
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = 5}} ,
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_1, .data.aftertouch_mono = {.value = 4}} ,
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_2, .data.aftertouch_mono = {.value = 7}} ,
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_2, .data.aftertouch_mono = {.value = 24}} ,
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_2, .data.aftertouch_mono = {.value = 28}} ,
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_2, .data.program_change = {.program_id = 27}} ,
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_G_8, .value=15}} , 
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_G_7, .value=18}} , 
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_F_3, .value=88}} , 
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = 293}} ,
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_2, .data.aftertouch_poly = {.note= MIDI_NOTE_A_4, .value=37}} ,
+      {.type = MIDI_MSG_TYPE_SYSTEM_RESET},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_2, .data.aftertouch_poly = {.note= MIDI_NOTE_G_4, .value=3}} ,
       // clang-format on
   };
 

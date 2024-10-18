@@ -25,7 +25,7 @@ int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOff{note=");
+  if(len < max_len) len += snprintf(str, max_len, "NoteOff{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
@@ -38,7 +38,7 @@ int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_NoteOn{note=");
+  if(len < max_len) len += snprintf(str, max_len, "NoteOn{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
@@ -50,32 +50,32 @@ int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg) {
 int MIDI_control_change_msg_to_str_buffer(char * str, int max_len, MIDI_ControlChange msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_ControlChange{control=%s, value=%u}", MIDI_ctrl_to_str(msg.control), msg.value);
+  return snprintf(str, max_len, "ControlChange{control=%s, value=%u}", MIDI_ctrl_to_str(msg.control), msg.value);
 }
 
 int MIDI_program_change_msg_to_str_buffer(char * str, int max_len, MIDI_ProgramChange msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_ProgramChange{program_id=%u}", msg.program_id);
+  return snprintf(str, max_len, "ProgramChange{program_id=%u}", msg.program_id);
 }
 
 int MIDI_pitch_bend_msg_to_str_buffer(char * str, int max_len, MIDI_PitchBend msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_PitchBend{value=%d}", msg.value);
+  return snprintf(str, max_len, "PitchBend{value=%d}", msg.value);
 }
 
 int MIDI_aftertouch_mono_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchMono msg) {
   if(str == NULL) return 0;
 
-  return snprintf(str, max_len, "MIDI_AftertouchMono{value=%u}", msg.value);
+  return snprintf(str, max_len, "AftertouchMono{value=%u}", msg.value);
 }
 
 int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchPoly msg) {
   if(str == NULL) return 0;
 
   int len = 0;
-  if(len < max_len) len += snprintf(str, max_len, "MIDI_AftertouchPoly{note=");
+  if(len < max_len) len += snprintf(str, max_len, "AftertouchPoly{note=");
 
   if(len < max_len) len += MIDI_note_to_str_buffer(&str[len], (max_len - len), msg.note);
 
@@ -152,17 +152,16 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
 
   int len = 0;
 
-  if(len < max_len)
-    len += snprintf(&str[len], max_len, "MIDI_Message{type=%s, ", MIDI_message_type_to_str(MIDI_get_type(msg)));
+  if(len < max_len) len += snprintf(&str[len], max_len, "MIDI_Message{type=%s, ", MIDI_message_type_to_str(msg.type));
 
-  if((len < max_len) && MIDI_is_channel_type(MIDI_get_type(msg))) {
-    len += snprintf(&str[len], max_len, "channel=%u, ", MIDI_get_channel(msg));
+  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
+    len += snprintf(&str[len], max_len, "channel=%u, ", msg.channel);
   }
 
   if(len < max_len) len += snprintf(&str[len], max_len, "data=");
 
   if(len < max_len) {
-    switch(MIDI_get_type(msg)) {
+    switch(msg.type) {
     case MIDI_MSG_TYPE_NOTE_OFF:
       len += MIDI_note_off_msg_to_str_buffer(&str[len], (max_len - len), msg.data.note_off);
       break;
@@ -198,12 +197,12 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 
   int len = 0;
 
-  if((len < max_len) && MIDI_is_channel_type(MIDI_get_type(msg))) {
-    len += snprintf(&str[len], (max_len - len), "%u:", MIDI_get_channel(msg));
+  if((len < max_len) && MIDI_is_channel_type(msg.type)) {
+    len += snprintf(&str[len], (max_len - len), "%u:", msg.channel);
   }
 
   if(len < max_len) {
-    switch(MIDI_get_type(msg)) {
+    switch(msg.type) {
     case MIDI_MSG_TYPE_NOTE_OFF:
       len += MIDI_note_off_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.note_off);
       break;
@@ -239,12 +238,12 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 }
 
 bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
-  if(lhs.status_data != rhs.status_data) return false;
+  if(lhs.type != rhs.type) return false;
 
-  if(MIDI_is_real_time_type(MIDI_get_type(lhs))) return true;
+  if(MIDI_is_channel_type(lhs.type)) {
+    if(lhs.channel != rhs.channel) return false;
 
-  if(MIDI_is_channel_type(MIDI_get_type(lhs))) {
-    switch(MIDI_get_type(lhs)) {
+    switch(lhs.type) {
     case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(lhs.data.note_off, rhs.data.note_off);
     case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(lhs.data.note_on, rhs.data.note_on);
     case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
@@ -262,7 +261,9 @@ bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
     return false;
   }
 
-  if(MIDI_is_system_type(MIDI_get_type(lhs))) {
+  if(MIDI_is_system_type(lhs.type)) {
+    if(MIDI_is_real_time_type(lhs.type)) return true;
+
     // TODO
 
     return false;
