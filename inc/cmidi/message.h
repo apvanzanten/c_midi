@@ -119,7 +119,7 @@ typedef struct MIDI_Message {
     MIDI_AftertouchMono aftertouch_mono;
     MIDI_AftertouchPoly aftertouch_poly;
     MIDI_SystemMessage  system_msg;
-  } as;
+  } data;
 } MIDI_Message;
 
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
