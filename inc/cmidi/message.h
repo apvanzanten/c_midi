@@ -60,6 +60,8 @@ static inline uint8_t      MIDI_type_to_byte(MIDI_MessageType type) { return (ui
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t);
 static inline bool         MIDI_is_channel_type(MIDI_MessageType type);
 static inline bool         MIDI_is_system_type(MIDI_MessageType type);
+static inline bool         MIDI_is_real_time_type(MIDI_MessageType type);
+static inline bool         MIDI_is_single_byte_type(MIDI_MessageType type);
 
 typedef struct MIDI_NoteOff {
   uint8_t note; // value of MIDI_Note
@@ -130,6 +132,11 @@ typedef struct MIDI_Message {
     MIDI_QuarterFrame   quarter_frame;
   } data;
 } MIDI_Message;
+
+static inline bool MIDI_is_channel_msg(MIDI_Message msg);
+static inline bool MIDI_is_system_msg(MIDI_Message msg);
+static inline bool MIDI_is_real_time_msg(MIDI_Message msg);
+static inline bool MIDI_is_single_byte_msg(MIDI_Message msg);
 
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
@@ -230,6 +237,20 @@ static inline bool MIDI_is_real_time_type(MIDI_MessageType type) {
   default: return false;
   }
 }
+
+static inline bool MIDI_is_single_byte_type(MIDI_MessageType type) {
+  if(MIDI_is_real_time_type(type)) return true;
+  switch(type) {
+  case MIDI_MSG_TYPE_TUNE_REQUEST: return true;
+  case MIDI_MSG_TYPE_SYSEX_STOP: return true;
+  default: return false;
+  }
+}
+
+static inline bool MIDI_is_channel_msg(MIDI_Message msg) { return MIDI_is_channel_type(msg.type); }
+static inline bool MIDI_is_system_msg(MIDI_Message msg) { return MIDI_is_system_type(msg.type); }
+static inline bool MIDI_is_real_time_msg(MIDI_Message msg) { return MIDI_is_real_time_type(msg.type); }
+static inline bool MIDI_is_single_byte_msg(MIDI_Message msg) { return MIDI_is_single_byte_type(msg.type); }
 
 static inline const char * MIDI_quarter_frame_type_to_str(MIDI_QuarterFrameType type) {
   switch(type) {

@@ -483,6 +483,8 @@ static Result tst_multiple_msgs(void * env) {
       status_bit | MIDI_MSG_TYPE_MTC_QUARTER_FRAME, 
       status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
                                                     (MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE << 4) | 5,
+      status_bit | MIDI_MSG_TYPE_TUNE_REQUEST,
+      status_bit | MIDI_MSG_TYPE_SYSEX_STOP,
       // clang-format on
   };
 
@@ -536,6 +538,8 @@ static Result tst_multiple_msgs(void * env) {
       {.type = MIDI_MSG_TYPE_MTC_QUARTER_FRAME, .data.quarter_frame = {.type= MIDI_QF_TYPE_SECONDS_LOW_NIBBLE, .value=3}},
       {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
       {.type = MIDI_MSG_TYPE_MTC_QUARTER_FRAME, .data.quarter_frame = {.type= MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE, .value=5}},
+      {.type = MIDI_MSG_TYPE_TUNE_REQUEST},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP},
       // clang-format on
   };
 

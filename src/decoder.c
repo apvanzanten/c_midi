@@ -78,6 +78,7 @@ static MIDI_QuarterFrameType get_quarter_frame_value(uint8_t byte);
 static bool                  is_status(uint8_t byte);
 static bool                  is_of_type(uint8_t byte, MIDI_MessageType type);
 static bool                  is_channel_type(uint8_t status_byte);
+static bool                  is_single_byte_type(uint8_t status_byte);
 static bool                  is_system_type(uint8_t status_byte);
 static bool                  is_real_time(uint8_t status_byte);
 static bool                  is_note_on(uint8_t byte);
@@ -141,7 +142,20 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     switch(decoder->state) {
     case ST_INIT: {
       LOG(decoder, byte, "state entry");
-      if(is_channel_type(byte)) {
+
+      if(is_single_byte_type(byte)) {
+        // single-byte type messages are all type-only, so we can push immediately
+        MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+
+      } else if(is_system_type(byte)) {
+        // NOTE real-time messages and single-byte messages are handled elsewhere
+        if(is_quarter_frame(byte)) {
+          decoder->state = ST_MTC_QUARTER_FRAME;
+        } else {
+          // do nothing, maintain the init state and move to next byte, as this is an unparsable byte
+        }
+
+      } else if(is_channel_type(byte)) {
         decoder->current_channel = get_channel(byte);
 
         if(is_note_on(byte)) {
@@ -161,14 +175,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
         } else {
           // do nothing, maintain the init state and move to next byte, as this is an unparsable byte
         }
-      } else if(is_system_type(byte)) {
-        // NOTE real-time messages are handled elsewhere
-        if(is_quarter_frame(byte)) {
-          decoder->state = ST_MTC_QUARTER_FRAME;
-        } else {
-          // do nothing, maintain the init state and move to next byte, as this is an unparsable byte
-        }
       }
+
       try_byte_again = false; // we never try again after going through the init state, as there would be no improvement
 
       LOG(decoder, byte, "handled byte from ST_INIT");
@@ -392,6 +400,10 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
 static bool is_channel_type(uint8_t status_byte) {
   return is_status(status_byte) && MIDI_is_channel_type(get_type(status_byte));
+}
+
+static bool is_single_byte_type(uint8_t status_byte) {
+  return is_status(status_byte) && MIDI_is_single_byte_type(get_type(status_byte));
 }
 
 static uint8_t get_status_bit(uint8_t byte) { return byte & (1 << 7) /* 0b1000'0000 */; }

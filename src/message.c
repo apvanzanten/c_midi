@@ -272,6 +272,8 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
 bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
   if(lhs.type != rhs.type) return false;
 
+  if(MIDI_is_single_byte_type(lhs.type)) return true;
+
   if(MIDI_is_channel_type(lhs.type)) {
     if(lhs.channel != rhs.channel) return false;
 
@@ -292,8 +294,6 @@ bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
   }
 
   if(MIDI_is_system_type(lhs.type)) {
-    if(MIDI_is_real_time_type(lhs.type)) return true;
-
     switch(lhs.type) {
     case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
       return MIDI_quarter_frame_msg_equals(lhs.data.quarter_frame, rhs.data.quarter_frame);
