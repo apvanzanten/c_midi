@@ -119,6 +119,10 @@ typedef struct MIDI_SongPositionPointer {
   uint16_t value;
 } MIDI_SongPositionPointer;
 
+typedef struct MIDI_SongSelect {
+  uint8_t value;
+} MIDI_SongSelect;
+
 typedef struct MIDI_Message {
   bool         is_non_standard_msg : 1; // currently unused, reserved for hacking our way into supporting sysex
   uint8_t      type : 7;                // value of MIDI_MessageType
@@ -135,6 +139,7 @@ typedef struct MIDI_Message {
     MIDI_AftertouchPoly      aftertouch_poly;
     MIDI_QuarterFrame        quarter_frame;
     MIDI_SongPositionPointer song_position_pointer;
+    MIDI_SongSelect          song_select;
   } data;
 } MIDI_Message;
 
@@ -152,6 +157,7 @@ int MIDI_aftertouch_mono_msg_to_str_buffer(char * str, int max_len, MIDI_Afterto
 int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_AftertouchPoly msg);
 int MIDI_quarter_frame_msg_to_str_buffer(char * str, int max_len, MIDI_QuarterFrame msg);
 int MIDI_song_position_pointer_msg_to_str_buffer(char * str, int max_len, MIDI_SongPositionPointer msg);
+int MIDI_song_select_msg_to_str_buffer(char * str, int max_len, MIDI_SongSelect msg);
 
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOn msg);
@@ -162,6 +168,7 @@ int MIDI_aftertouch_mono_msg_to_str_buffer_short(char * str, int max_len, MIDI_A
 int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_AftertouchPoly msg);
 int MIDI_quarter_frame_msg_to_str_buffer_short(char * str, int max_len, MIDI_QuarterFrame msg);
 int MIDI_song_position_pointer_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongPositionPointer msg);
+int MIDI_song_select_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongSelect msg);
 
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);
@@ -177,6 +184,7 @@ bool MIDI_aftertouch_mono_msg_equals(MIDI_AftertouchMono lhs, MIDI_AftertouchMon
 bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPoly rhs);
 bool MIDI_quarter_frame_msg_equals(MIDI_QuarterFrame lhs, MIDI_QuarterFrame rhs);
 bool MIDI_song_position_pointer_msg_equals(MIDI_SongPositionPointer lhs, MIDI_SongPositionPointer rhs);
+bool MIDI_song_select_msg_equals(MIDI_SongSelect lhs, MIDI_SongSelect rhs);
 
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   switch(t) {

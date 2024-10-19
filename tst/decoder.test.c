@@ -452,6 +452,37 @@ static Result tst_song_position_pointer(void * env) {
   return r;
 }
 
+static Result tst_song_select(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t status_byte = status_bit | MIDI_MSG_TYPE_SONG_SELECT;
+  const uint8_t value       = 100;
+
+  EXPECT_OK(&r, MIDI_push_byte(decoder, status_byte));
+  EXPECT_OK(&r, MIDI_push_byte(decoder, value));
+
+  EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
+  if(HAS_FAILED(&r)) return r;
+
+  const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
+  const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
+  EXPECT_TRUE(&r, MIDI_message_equals(peek_res, pop_res));
+  EXPECT_TRUE(&r,
+              MIDI_message_equals((MIDI_Message){.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select.value = value},
+                                  pop_res));
+
+  if(HAS_FAILED(&r)) {
+    char buff[128] = {0};
+    MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, pop_res);
+    printf("%s\n", buff);
+  }
+
+  return r;
+}
+
 static Result tst_multiple_msgs(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
@@ -503,11 +534,14 @@ static Result tst_multiple_msgs(void * env) {
                                                                           24,
                                                                           28,
       status_bit | MIDI_MSG_TYPE_PROGRAM_CHANGE   | TEST_CHANNEL_2_BITS,  27,
+      status_bit | MIDI_MSG_TYPE_SONG_SELECT,                             19,
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_POLY  | TEST_CHANNEL_1_BITS,  MIDI_NOTE_G_8, 15,
                                                                           MIDI_NOTE_G_7, 18,
                                                                           MIDI_NOTE_F_3, 88,
       status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(293),  pitch_bend_msb(293),
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_POLY  | TEST_CHANNEL_2_BITS,  MIDI_NOTE_A_4, 37,
+
+      status_bit | MIDI_MSG_TYPE_SONG_POSITION_POINTER,                   (0x1ABC & 0x7f), (0x1ABC >> 7),
 
       status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(293),
       status_bit | MIDI_MSG_TYPE_SYSTEM_RESET, 
@@ -563,11 +597,13 @@ static Result tst_multiple_msgs(void * env) {
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_2, .data.aftertouch_mono = {.value = 24}},
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = TEST_CHANNEL_2, .data.aftertouch_mono = {.value = 28}},
       {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = TEST_CHANNEL_2, .data.program_change = {.program_id = 27}},
+      {.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select = {.value = 19}},
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_G_8, .value=15}}, 
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_G_7, .value=18}}, 
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_1, .data.aftertouch_poly = {.note= MIDI_NOTE_F_3, .value=88}}, 
       {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = TEST_CHANNEL_1, .data.pitch_bend = {.value = 293}},
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_2, .data.aftertouch_poly = {.note= MIDI_NOTE_A_4, .value=37}},
+      {.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER, .data.song_position_pointer = {.value = 0x1ABC}},
       {.type = MIDI_MSG_TYPE_SYSTEM_RESET},
       {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = TEST_CHANNEL_2, .data.aftertouch_poly = {.note= MIDI_NOTE_G_4, .value=3}},
       {.type = MIDI_MSG_TYPE_MTC_QUARTER_FRAME, .data.quarter_frame = {.type= MIDI_QF_TYPE_SECONDS_LOW_NIBBLE, .value=3}},
@@ -630,6 +666,7 @@ int main(void) {
       tst_real_time,
       tst_real_time_with_running_status,
       tst_real_time_prio_mode,
+      tst_song_select,
       tst_multiple_msgs,
   };
 

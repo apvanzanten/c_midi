@@ -49,6 +49,7 @@ typedef enum StateIdx {
   ST_MTC_QUARTER_FRAME_STARTED,
   ST_SONG_POSITION_POINTER_STARTED,
   ST_SONG_POSITION_POINTER_WITH_VALID_LSB,
+  ST_SONG_SELECT_STARTED,
 } StateIdx;
 
 const char * state_to_string(StateIdx state) {
@@ -69,6 +70,7 @@ const char * state_to_string(StateIdx state) {
   case ST_MTC_QUARTER_FRAME_STARTED: return "ST_MTC_QUARTER_FRAME_STARTED";
   case ST_SONG_POSITION_POINTER_STARTED: return "ST_SONG_POSITION_POINTER_STARTED";
   case ST_SONG_POSITION_POINTER_WITH_VALID_LSB: return "ST_SONG_POSITION_POINTER_WITH_VALID_LSB";
+  case ST_SONG_SELECT_STARTED: return "ST_SONG_SELECT_STARTED";
   }
   return "UNKNOWN";
 }
@@ -96,6 +98,7 @@ static bool                  is_quarter_frame(uint8_t byte);
 static bool                  is_data_byte(uint8_t byte);
 static bool                  is_system_reset(uint8_t byte);
 static bool                  is_song_position_pointer(uint8_t byte);
+static bool                  is_song_select(uint8_t byte);
 
 static int16_t  make_pitch_bend_value(uint8_t lsb, uint8_t high_byte);
 static uint16_t make_song_position_pointer_value(uint8_t lsb, uint8_t high_byte);
@@ -159,6 +162,8 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
           decoder->state = ST_MTC_QUARTER_FRAME_STARTED;
         } else if(is_song_position_pointer(byte)) {
           decoder->state = ST_SONG_POSITION_POINTER_STARTED;
+        } else if(is_song_select(byte)) {
+          decoder->state = ST_SONG_SELECT_STARTED;
         } else {
           // do nothing, maintain the init state and move to next byte, as this is an unparsable byte
         }
@@ -428,6 +433,22 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       }
       break;
     }
+
+    case ST_SONG_SELECT_STARTED: {
+      LOG(decoder, byte, "state entry");
+      if(is_data_byte(byte)) {
+        MIDI_INT_buff_push(&(decoder->msg_buffer),
+                           (MIDI_Message){.type             = MIDI_MSG_TYPE_SONG_SELECT,
+                                          .data.song_select = {.value = byte & 0x7f}});
+
+        decoder->state = ST_INIT; // parsed OK, but there is no running status for this message type
+      } else {
+        try_byte_again = true;
+        decoder->state = ST_INIT; // byte not parsable, try again from init state
+        LOG(decoder, byte, "byte unparsable from state");
+      }
+      break;
+    }
     }
   } while(try_byte_again);
 
@@ -476,12 +497,11 @@ static bool is_pitch_bend(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_
 static bool is_aftertouch_mono(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_AFTERTOUCH_MONO); }
 static bool is_aftertouch_poly(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_AFTERTOUCH_POLY); }
 static bool is_quarter_frame(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_MTC_QUARTER_FRAME); }
+static bool is_system_reset(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SYSTEM_RESET); }
+static bool is_song_position_pointer(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SONG_POSITION_POINTER); }
+static bool is_song_select(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SONG_SELECT); }
 
 static bool is_data_byte(uint8_t byte) { return !is_status(byte); }
-
-static bool is_system_reset(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SYSTEM_RESET); }
-
-static bool is_song_position_pointer(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SONG_POSITION_POINTER); }
 
 static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t msb) {
   const int16_t mid = 0x40 << 7;

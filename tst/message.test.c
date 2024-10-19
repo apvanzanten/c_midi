@@ -627,6 +627,9 @@ static Result tst_equals_many(void) {
 
       {.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER, .data.song_position_pointer = {.value = 4567}},
       {.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER, .data.song_position_pointer = {.value = 12345}},
+
+      {.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select = {.value = 119}},
+      {.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select = {.value = 47}},
   };
 
   const size_t num_msgs = sizeof(msgs) / sizeof(msgs[0]);
