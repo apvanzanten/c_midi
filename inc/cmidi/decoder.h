@@ -54,6 +54,7 @@ typedef struct MIDI_Decoder {
   MIDI_Channel current_channel;
 
   uint8_t pitch_bend_lsb;
+  uint8_t song_position_lsb;
 
   uint8_t running_status;
 } MIDI_Decoder;

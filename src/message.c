@@ -97,6 +97,17 @@ int MIDI_quarter_frame_msg_to_str_buffer(char * str, int max_len, MIDI_QuarterFr
   return len;
 }
 
+int MIDI_song_position_pointer_msg_to_str_buffer(char * str, int max_len, MIDI_SongPositionPointer msg) {
+  if(str == NULL) return 0;
+
+  int len = 0;
+  if(len < max_len) len += snprintf(str, max_len, "SongPositionPointer{");
+
+  if(len < max_len) len += snprintf(&str[len], (max_len - len), "value=%u}", msg.value);
+
+  return len;
+}
+
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg) {
   if(str == NULL) return 0;
 
@@ -173,6 +184,12 @@ int MIDI_quarter_frame_msg_to_str_buffer_short(char * str, int max_len, MIDI_Qua
   return len;
 }
 
+int MIDI_song_position_pointer_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongPositionPointer msg) {
+  if(str == NULL) return 0;
+
+  return snprintf(str, max_len, "SPP{%u}", msg.value);
+}
+
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
   if(str == NULL) return 0;
 
@@ -211,6 +228,9 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
       break;
     case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
       len += MIDI_quarter_frame_msg_to_str_buffer(&str[len], (max_len - len), msg.data.quarter_frame);
+      break;
+    case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
+      len += MIDI_song_position_pointer_msg_to_str_buffer(&str[len], (max_len - len), msg.data.song_position_pointer);
       break;
     default: len += snprintf(&str[len], max_len, "N/A"); break;
     }
@@ -256,6 +276,11 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
     case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
       len += MIDI_quarter_frame_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.quarter_frame);
       break;
+    case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
+      len += MIDI_song_position_pointer_msg_to_str_buffer_short(&str[len],
+                                                                (max_len - len),
+                                                                msg.data.song_position_pointer);
+      break;
     case MIDI_MSG_TYPE_TIMING_CLOCK: len += snprintf(&str[len], (max_len - len), "TCLK"); break;
     case MIDI_MSG_TYPE_START: len += snprintf(&str[len], (max_len - len), "START"); break;
     case MIDI_MSG_TYPE_CONTINUE: len += snprintf(&str[len], (max_len - len), "CONT"); break;
@@ -297,6 +322,8 @@ bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
     switch(lhs.type) {
     case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
       return MIDI_quarter_frame_msg_equals(lhs.data.quarter_frame, rhs.data.quarter_frame);
+    case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
+      return MIDI_song_position_pointer_msg_equals(lhs.data.song_position_pointer, rhs.data.song_position_pointer);
     default: return false;
     }
   }
@@ -332,4 +359,8 @@ bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPol
 
 bool MIDI_quarter_frame_msg_equals(MIDI_QuarterFrame lhs, MIDI_QuarterFrame rhs) {
   return (lhs.type == rhs.type) && (lhs.value == rhs.value);
+}
+
+bool MIDI_song_position_pointer_msg_equals(MIDI_SongPositionPointer lhs, MIDI_SongPositionPointer rhs) {
+  return (lhs.value == rhs.value);
 }

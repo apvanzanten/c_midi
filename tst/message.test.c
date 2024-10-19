@@ -41,6 +41,7 @@ static Result tst_size(void) {
   EXPECT_EQ(&r, sizeof(MIDI_AftertouchMono), 1);
   EXPECT_EQ(&r, sizeof(MIDI_AftertouchPoly), 2);
   EXPECT_EQ(&r, sizeof(MIDI_QuarterFrame), 1);
+  EXPECT_EQ(&r, sizeof(MIDI_SongPositionPointer), 2);
   EXPECT_EQ(&r, sizeof(MIDI_Message), 4);
 
   if(HAS_FAILED(&r)) {
@@ -52,6 +53,7 @@ static Result tst_size(void) {
     printf("%s=%zu\n", "sizeof(MIDI_AftertouchMono)", sizeof(MIDI_AftertouchMono));
     printf("%s=%zu\n", "sizeof(MIDI_AftertouchPoly)", sizeof(MIDI_AftertouchPoly));
     printf("%s=%zu\n", "sizeof(MIDI_QuarterFrame)", sizeof(MIDI_QuarterFrame));
+    printf("%s=%zu\n", "sizeof(MIDI_SongPositionPointer)", sizeof(MIDI_SongPositionPointer));
     printf("%s=%zu\n", "sizeof(MIDI_Message)", sizeof(MIDI_Message));
   }
 
@@ -223,6 +225,18 @@ static Result tst_to_string(void) {
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "MIDI_Message{type=SONG_POSITION_POINTER, data=SongPositionPointer{value=12345}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
+                                                        .data.song_position_pointer = {.value = 12345}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
 
   return r;
 }
@@ -390,6 +404,18 @@ static Result tst_to_string_short(void) {
                                                               .data.quarter_frame =
                                                                   {.type  = MIDI_QF_TYPE_MINUTES_LOW_NIBBLE,
                                                                    .value = 10}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "SPP{12345}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
+                                                              .data.song_position_pointer = {.value = 12345}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -598,6 +624,9 @@ static Result tst_equals_many(void) {
        .data.quarter_frame = {.type = MIDI_QF_TYPE_FRAME_HIGH_NIBBLE, .value = 14}},
       {.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
        .data.quarter_frame = {.type = MIDI_QF_TYPE_FRAME_HIGH_NIBBLE, .value = 8}},
+
+      {.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER, .data.song_position_pointer = {.value = 4567}},
+      {.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER, .data.song_position_pointer = {.value = 12345}},
   };
 
   const size_t num_msgs = sizeof(msgs) / sizeof(msgs[0]);

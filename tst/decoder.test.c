@@ -417,6 +417,41 @@ static Result tst_real_time_prio_mode(void * env) {
   return r;
 }
 
+static Result tst_song_position_pointer(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t  status_byte = status_bit | MIDI_MSG_TYPE_SONG_POSITION_POINTER;
+  const uint16_t value       = 16000;
+  const uint8_t  value_msb   = (value >> 7) & 0x7f;
+  const uint8_t  value_lsb   = value & 0x7f;
+
+  EXPECT_OK(&r, MIDI_push_byte(decoder, status_byte));
+  EXPECT_OK(&r, MIDI_push_byte(decoder, value_lsb));
+  EXPECT_OK(&r, MIDI_push_byte(decoder, value_msb));
+
+  EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
+  if(HAS_FAILED(&r)) return r;
+
+  const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
+  const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
+  EXPECT_TRUE(&r, MIDI_message_equals(peek_res, pop_res));
+  EXPECT_TRUE(&r,
+              MIDI_message_equals((MIDI_Message){.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
+                                                 .data.song_position_pointer.value = value},
+                                  pop_res));
+
+  if(HAS_FAILED(&r)) {
+    char buff[128] = {0};
+    MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, pop_res);
+    printf("%s\n", buff);
+  }
+
+  return r;
+}
+
 static Result tst_multiple_msgs(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
@@ -591,6 +626,7 @@ int main(void) {
       tst_aftertouch_mono,
       tst_aftertouch_poly,
       tst_program_change,
+      tst_song_position_pointer,
       tst_real_time,
       tst_real_time_with_running_status,
       tst_real_time_prio_mode,
