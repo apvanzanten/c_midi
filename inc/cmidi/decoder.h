@@ -36,9 +36,18 @@ typedef struct MIDI_MsgBuffer {
   bool         is_full;
 } MIDI_MsgBuffer;
 
+typedef enum MIDI_DecoderPriorityMode {
+  MIDI_DECODE_PRIO_MODE_FIFO = 0,
+  MIDI_DECODE_PRIO_MODE_REALTIME_FIRST,
+} MIDI_DecoderPriorityMode;
+
 typedef struct MIDI_Decoder {
-  uint8_t        state;
+  MIDI_DecoderPriorityMode prio_mode;
+
+  uint8_t state;
+
   MIDI_MsgBuffer msg_buffer;
+  MIDI_MsgBuffer prio_msg_buffer;
 
   MIDI_Note    current_note;
   MIDI_Control current_control;
@@ -49,7 +58,8 @@ typedef struct MIDI_Decoder {
   uint8_t running_status;
 } MIDI_Decoder;
 
-STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder);
+STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode);
+STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode);
 
 STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
 
@@ -64,22 +74,30 @@ static inline MIDI_Message MIDI_INT_buff_pop(MIDI_MsgBuffer * restrict buffer);
 static inline void         MIDI_INT_buff_push(MIDI_MsgBuffer * restrict buffer, MIDI_Message msg);
 static inline MIDI_Message MIDI_INT_buff_peek(const MIDI_MsgBuffer * restrict buffer);
 
+static inline bool MIDI_decoder_is_in_realtime_prio_mode(const MIDI_Decoder * restrict decoder) {
+  return (decoder != NULL) && (decoder->prio_mode == MIDI_DECODE_PRIO_MODE_REALTIME_FIRST);
+}
+
 static inline bool MIDI_decoder_has_output(const MIDI_Decoder * restrict decoder) {
-  return (decoder != NULL) && !MIDI_INT_buff_is_empty(&(decoder->msg_buffer));
+  return (decoder != NULL) &&
+         (!MIDI_INT_buff_is_empty(&(decoder->msg_buffer)) || !MIDI_INT_buff_is_empty(&(decoder->prio_msg_buffer)));
 }
 
 static inline MIDI_Message MIDI_decoder_peek_msg(const MIDI_Decoder * restrict decoder) {
   if(decoder == NULL) return (MIDI_Message){0};
+  if(!MIDI_INT_buff_is_empty(&(decoder->prio_msg_buffer))) return MIDI_INT_buff_peek(&(decoder->prio_msg_buffer));
   return MIDI_INT_buff_peek(&(decoder->msg_buffer));
 }
 
 static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder) {
   if(decoder == NULL) return (MIDI_Message){0};
+  if(!MIDI_INT_buff_is_empty(&(decoder->prio_msg_buffer))) return MIDI_INT_buff_pop(&(decoder->prio_msg_buffer));
   return MIDI_INT_buff_pop(&(decoder->msg_buffer));
 }
 
 static inline bool MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder) {
-  return (decoder != NULL) && (!MIDI_INT_buff_is_full(&(decoder->msg_buffer)));
+  return (decoder != NULL) && !MIDI_INT_buff_is_full(&(decoder->msg_buffer)) &&
+         !MIDI_INT_buff_is_full(&(decoder->prio_msg_buffer));
 }
 
 static inline bool MIDI_INT_buff_is_empty(const MIDI_MsgBuffer * restrict buffer) {

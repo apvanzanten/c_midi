@@ -95,13 +95,23 @@ static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t high_byte);
 
 static void buff_init(MIDI_MsgBuffer * restrict buffer) { *buffer = (MIDI_MsgBuffer){0}; }
 
-STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder) {
+STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
 
   *decoder = (MIDI_Decoder){0};
   buff_init(&(decoder->msg_buffer));
+  buff_init(&(decoder->prio_msg_buffer));
 
-  decoder->state = ST_INIT;
+  decoder->state     = ST_INIT;
+  decoder->prio_mode = prio_mode;
+
+  return OK;
+}
+
+STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode) {
+  if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
+
+  decoder->prio_mode = prio_mode;
 
   return OK;
 }
@@ -113,7 +123,11 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   LOG(decoder, byte, "func entry");
 
   if(is_real_time(byte)) {
-    MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+    if(MIDI_decoder_is_in_realtime_prio_mode(decoder)) {
+      MIDI_INT_buff_push(&(decoder->prio_msg_buffer), (MIDI_Message){.type = get_type(byte)});
+    } else {
+      MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+    }
 
     if(is_system_reset(byte)) decoder->state = ST_INIT;
 

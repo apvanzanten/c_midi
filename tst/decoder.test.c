@@ -349,6 +349,74 @@ static uint8_t pitch_bend_msb(int16_t value) {
   return ((value + mid_point) >> 7) & 0x7f; // 0b0111'1111;
 }
 
+static Result tst_real_time_prio_mode(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  EXPECT_OK(&r, MIDI_decoder_set_prio_mode(decoder, MIDI_DECODE_PRIO_MODE_REALTIME_FIRST));
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t bytes[] = {
+      // clang-format off
+      status_bit | MIDI_MSG_TYPE_NOTE_ON          | TEST_CHANNEL_1_BITS,  MIDI_NOTE_A_3,    27,
+                                                                          MIDI_NOTE_D_5,    40,
+                                                                          MIDI_NOTE_A_3,     0,
+      status_bit | MIDI_MSG_TYPE_START, 
+                                                                          MIDI_NOTE_F_2,    29,
+      status_bit | MIDI_MSG_TYPE_NOTE_ON          | TEST_CHANNEL_1_BITS,  MIDI_NOTE_G_8,    20,
+      status_bit | MIDI_MSG_TYPE_TIMING_CLOCK,
+      // clang-format on
+  };
+
+  const MIDI_Message expect_msgs[] = {
+      // clang-format off
+      // realtime messages will be first even though they were not sent first
+      {.type = MIDI_MSG_TYPE_START},
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 27}},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_D_5, .velocity = 40}},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_A_3, .velocity = 0}},
+      // clang-format on
+  };
+
+  for(size_t push_idx = 0; (push_idx < (sizeof(bytes) / sizeof(bytes[0]))); push_idx++) {
+    EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
+    EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, bytes[push_idx]));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  for(size_t pop_idx = 0; pop_idx < (sizeof(expect_msgs) / sizeof(expect_msgs[0])); pop_idx++) {
+    const MIDI_Message expect = expect_msgs[pop_idx];
+
+    EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
+    if(HAS_FAILED(&r)) return r;
+
+    const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
+    const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
+    EXPECT_TRUE(&r, MIDI_message_equals(peek_res, pop_res));
+
+    EXPECT_TRUE(&r, MIDI_message_equals(expect, pop_res));
+
+    if(HAS_FAILED(&r)) {
+      {
+        char buff[128] = {0};
+        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, expect);
+        printf("%s", buff);
+      }
+      printf(" != ");
+      {
+        char buff[128] = {0};
+        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, pop_res);
+        printf("%s", buff);
+      }
+      printf("\n");
+    }
+  }
+
+  return r;
+}
+
 static Result tst_multiple_msgs(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
@@ -521,6 +589,7 @@ int main(void) {
       tst_program_change,
       tst_real_time,
       tst_real_time_with_running_status,
+      tst_real_time_prio_mode,
       tst_multiple_msgs,
   };
 
@@ -544,7 +613,7 @@ static Result setup(void ** env_p) {
   EXPECT_NE(&r, NULL, *pars_p);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p));
+  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p, MIDI_DECODE_PRIO_MODE_FIFO));
 
   return r;
 }
