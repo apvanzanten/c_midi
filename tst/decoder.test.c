@@ -23,6 +23,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
+#include <cfac/darray.h>
 
 #define OK STAT_OK
 
@@ -36,6 +39,14 @@
 
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
+
+static void check_input_and_output(Result *             r_ptr,
+                                   const char *         test_name,
+                                   MIDI_Decoder *       decoder,
+                                   const uint8_t *      input,
+                                   size_t               input_n,
+                                   const MIDI_Message * expect_output,
+                                   size_t               expect_output_n);
 
 static Result tst_fixture(void * env) {
   Result               r       = PASS;
@@ -483,6 +494,135 @@ static Result tst_song_select(void * env) {
   return r;
 }
 
+static Result tst_sysex_sequence(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t input[] = {status_bit | MIDI_MSG_TYPE_SYSEX_START,
+                           0x08,
+                           0x19,
+                           0x2a,
+                           0x3b,
+                           0x4c,
+                           0x5d,
+                           0x6e,
+                           0x7f,
+                           status_bit | MIDI_MSG_TYPE_SYSEX_STOP};
+
+  const MIDI_Message expect_msgs[] = {
+      {.type = MIDI_MSG_TYPE_SYSEX_START},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x08, .sequence_number = 0}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x19, .sequence_number = 1}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2a, .sequence_number = 2}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3b, .sequence_number = 3}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x4c, .sequence_number = 4}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x5d, .sequence_number = 5}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x6e, .sequence_number = 6}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x7f, .sequence_number = 7}},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 8, .is_length_overflowed = false}},
+  };
+
+  const size_t input_n       = sizeof(input) / sizeof(input[0]);
+  const size_t expect_msgs_n = sizeof(expect_msgs) / sizeof(expect_msgs[0]);
+
+  check_input_and_output(&r, __func__, decoder, input, input_n, expect_msgs, expect_msgs_n);
+
+  return r;
+}
+
+static Result tst_sysex_sequence_with_realtime_interruptions(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t input[] = {status_bit | MIDI_MSG_TYPE_SYSEX_START,
+                           0x08,
+                           0x19,
+                           0x2a,
+                           status_bit | MIDI_MSG_TYPE_TIMING_CLOCK,
+                           0x3b,
+                           0x4c,
+                           0x5d,
+                           status_bit | MIDI_MSG_TYPE_STOP,
+                           0x6e,
+                           0x7f,
+                           status_bit | MIDI_MSG_TYPE_SYSEX_STOP};
+
+  const MIDI_Message expect_msgs[] = {
+      {.type = MIDI_MSG_TYPE_SYSEX_START},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x08, .sequence_number = 0}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x19, .sequence_number = 1}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2a, .sequence_number = 2}},
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3b, .sequence_number = 3}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x4c, .sequence_number = 4}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x5d, .sequence_number = 5}},
+      {.type = MIDI_MSG_TYPE_STOP},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x6e, .sequence_number = 6}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x7f, .sequence_number = 7}},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 8, .is_length_overflowed = false}},
+  };
+
+  const size_t input_n       = sizeof(input) / sizeof(input[0]);
+  const size_t expect_msgs_n = sizeof(expect_msgs) / sizeof(expect_msgs[0]);
+
+  check_input_and_output(&r, __func__, decoder, input, input_n, expect_msgs, expect_msgs_n);
+
+  return r;
+}
+
+static Result tst_sysex_sequence_with_length_overflow(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  const uint8_t status_bit = (1 << 7); // 0b1000'0000
+
+  const uint8_t start_byte = status_bit | MIDI_MSG_TYPE_SYSEX_START;
+  const uint8_t stop_byte  = status_bit | MIDI_MSG_TYPE_SYSEX_STOP;
+
+  const size_t sequence_length = 40000;
+
+  DAR_DArray input_arr = {0};
+  EXPECT_OK(&r, DAR_create(&input_arr, sizeof(uint8_t)));
+  EXPECT_OK(&r, DAR_reserve(&input_arr, sequence_length + 2));
+
+  DAR_DArray expect_arr = {0};
+  EXPECT_OK(&r, DAR_create(&expect_arr, sizeof(MIDI_Message)));
+  EXPECT_OK(&r, DAR_reserve(&expect_arr, sequence_length + 2));
+
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_OK(&r, DAR_push_back(&input_arr, &start_byte));
+  EXPECT_OK(&r, DAR_push_back(&expect_arr, &(MIDI_Message){.type = MIDI_MSG_TYPE_SYSEX_START}));
+
+  for(size_t i = 0; i < sequence_length; i++) {
+    const uint8_t byte = rand() % 0x7f;
+
+    EXPECT_OK(&r, DAR_push_back(&input_arr, &byte));
+    EXPECT_OK(&r,
+              DAR_push_back(&expect_arr,
+                            &(MIDI_Message){.type            = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE,
+                                            .data.sysex_byte = {.byte = byte, .sequence_number = i}}));
+  }
+
+  EXPECT_OK(&r, DAR_push_back(&input_arr, &stop_byte));
+  EXPECT_OK(&r,
+            DAR_push_back(&expect_arr,
+                          &(MIDI_Message){.type            = MIDI_MSG_TYPE_SYSEX_STOP,
+                                          .data.sysex_stop = {.sequence_length      = (sequence_length & 0x7fff),
+                                                              .is_length_overflowed = true}}));
+
+  check_input_and_output(&r, __func__, decoder, input_arr.data, input_arr.size, expect_arr.data, expect_arr.size);
+
+  EXPECT_OK(&r, DAR_destroy(&input_arr));
+  EXPECT_OK(&r, DAR_destroy(&expect_arr));
+
+  return r;
+}
+
 static Result tst_multiple_msgs(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
@@ -553,7 +693,22 @@ static Result tst_multiple_msgs(void * env) {
       status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
                                                     (MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE << 4) | 5,
       status_bit | MIDI_MSG_TYPE_TUNE_REQUEST,
-      status_bit | MIDI_MSG_TYPE_SYSEX_STOP,
+       
+      status_bit | MIDI_MSG_TYPE_SYSEX_START, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, status_bit | MIDI_MSG_TYPE_SYSEX_STOP,
+
+      status_bit | MIDI_MSG_TYPE_SYSEX_START, 0x0a, 
+      status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
+                                                    0x1b, 0x2c, 
+      status_bit | MIDI_MSG_TYPE_START, 
+                                                                0x3d, 0x4e, 0x5f, 
+      status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
+                                                                                  status_bit | MIDI_MSG_TYPE_SYSEX_STOP,
+
+      status_bit | MIDI_MSG_TYPE_SYSEX_START, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x6a, // missing sysex stop
+      status_bit | MIDI_MSG_TYPE_NOTE_ON | TEST_CHANNEL_1_BITS,  MIDI_NOTE_G_8,    20,
+
+                                                                                  status_bit | MIDI_MSG_TYPE_SYSEX_STOP, // ignore late sysex stop
+
       // clang-format on
   };
 
@@ -610,46 +765,45 @@ static Result tst_multiple_msgs(void * env) {
       {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
       {.type = MIDI_MSG_TYPE_MTC_QUARTER_FRAME, .data.quarter_frame = {.type= MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE, .value=5}},
       {.type = MIDI_MSG_TYPE_TUNE_REQUEST},
-      {.type = MIDI_MSG_TYPE_SYSEX_STOP},
+      {.type = MIDI_MSG_TYPE_SYSEX_START}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x0a, .sequence_number = 0}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x1b, .sequence_number = 1}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2c, .sequence_number = 2}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3d, .sequence_number = 3}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x4e, .sequence_number = 4}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x5f, .sequence_number = 5}}, 
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 6, .is_length_overflowed=false}},
+      {.type = MIDI_MSG_TYPE_SYSEX_START}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x0a, .sequence_number = 0}}, 
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x1b, .sequence_number = 1}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2c, .sequence_number = 2}}, 
+      {.type = MIDI_MSG_TYPE_START},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3d, .sequence_number = 3}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x4e, .sequence_number = 4}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x5f, .sequence_number = 5}}, 
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 6, .is_length_overflowed=false}},
+      {.type = MIDI_MSG_TYPE_SYSEX_START}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x0a, .sequence_number = 0}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x1b, .sequence_number = 1}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2c, .sequence_number = 2}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3d, .sequence_number = 3}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x4e, .sequence_number = 4}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x5f, .sequence_number = 5}}, 
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x6a, .sequence_number = 6}}, 
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 7, .is_length_overflowed=false}},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = TEST_CHANNEL_1, .data.note_on = {.note = MIDI_NOTE_G_8, .velocity = 20}},
       // clang-format on
   };
 
-  size_t push_idx = 0;
-
-  for(size_t pop_idx = 0; pop_idx < (sizeof(expect_msgs) / sizeof(expect_msgs[0])); pop_idx++) {
-    for(; (push_idx < (sizeof(bytes) / sizeof(bytes[0]))) && MIDI_decoder_is_ready(decoder); push_idx++) {
-      EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, bytes[push_idx]));
-      if(HAS_FAILED(&r)) return r;
-    }
-
-    const MIDI_Message expect = expect_msgs[pop_idx];
-
-    EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
-    if(HAS_FAILED(&r)) return r;
-
-    const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
-    const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
-    EXPECT_TRUE(&r, MIDI_message_equals(peek_res, pop_res));
-
-    EXPECT_TRUE(&r, MIDI_message_equals(expect, pop_res));
-
-    if(HAS_FAILED(&r)) {
-      {
-        char buff[128] = {0};
-        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, expect);
-        printf("%s", buff);
-      }
-      printf(" != ");
-      {
-        char buff[128] = {0};
-        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, pop_res);
-        printf("%s", buff);
-      }
-      printf("\n");
-    }
-  }
-
-  EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
+  check_input_and_output(&r,
+                         __func__,
+                         decoder,
+                         bytes,
+                         (sizeof(bytes) / sizeof(bytes[0])),
+                         expect_msgs,
+                         (sizeof(expect_msgs) / sizeof(expect_msgs[0])));
 
   return r;
 }
@@ -667,6 +821,9 @@ int main(void) {
       tst_real_time_with_running_status,
       tst_real_time_prio_mode,
       tst_song_select,
+      tst_sysex_sequence,
+      tst_sysex_sequence_with_realtime_interruptions,
+      tst_sysex_sequence_with_length_overflow,
       tst_multiple_msgs,
   };
 
@@ -683,6 +840,9 @@ static Result setup(void ** env_p) {
 
   EXPECT_NE(&r, NULL, env_p);
   if(HAS_FAILED(&r)) return r;
+
+  // use both time and clock so we get a different seed even if we call this many times per second
+  srand(time(NULL) + clock());
 
   MIDI_Decoder ** pars_p = (MIDI_Decoder **)env_p;
 
@@ -705,4 +865,59 @@ static Result teardown(void ** env_p) {
   *env_p = NULL;
 
   return r;
+}
+
+static void check_input_and_output(Result *             r_ptr,
+                                   const char *         test_name,
+                                   MIDI_Decoder *       decoder,
+                                   const uint8_t *      input,
+                                   size_t               input_n,
+                                   const MIDI_Message * expect_output,
+                                   size_t               expect_output_n) {
+  EXPECT_NE(r_ptr, NULL, test_name);
+  EXPECT_NE(r_ptr, NULL, decoder);
+  EXPECT_NE(r_ptr, NULL, input);
+  EXPECT_NE(r_ptr, NULL, expect_output);
+
+  if(HAS_FAILED(r_ptr)) return;
+
+  size_t input_idx = 0;
+
+  for(size_t output_idx = 0; output_idx < expect_output_n; output_idx++) {
+    for(; (input_idx < input_n) && MIDI_decoder_is_ready(decoder); input_idx++) {
+      EXPECT_EQ(r_ptr, OK, MIDI_push_byte(decoder, input[input_idx]));
+      if(HAS_FAILED(r_ptr)) return;
+    }
+
+    const MIDI_Message expect = expect_output[output_idx];
+
+    EXPECT_TRUE(r_ptr, MIDI_decoder_has_output(decoder));
+    if(HAS_FAILED(r_ptr)) return;
+
+    const MIDI_Message peek_res = MIDI_decoder_peek_msg(decoder);
+    const MIDI_Message pop_res  = MIDI_decoder_pop_msg(decoder);
+    EXPECT_TRUE(r_ptr, MIDI_message_equals(peek_res, pop_res));
+
+    EXPECT_TRUE(r_ptr, MIDI_message_equals(expect, pop_res));
+
+    if(HAS_FAILED(r_ptr)) {
+      printf("failure in %s\n", test_name);
+      printf("expected:\t");
+      {
+        char buff[1024] = {0};
+        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, expect);
+        printf("%s", buff);
+      }
+      printf("\nactual:\t\t");
+      {
+        char buff[1024] = {0};
+        MIDI_message_to_str_buffer(buff, sizeof(buff) - 1, pop_res);
+        printf("%s", buff);
+      }
+      printf("\n");
+    }
+  }
+
+  EXPECT_EQ(r_ptr, input_n, input_idx);
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
 }

@@ -27,10 +27,15 @@
 
 #include <cfac/stat.h>
 
-#define MIDI_OUT_BUFFER_SIZE 32
+// TODO shrink?
+#define MIDI_OUT_BUFFER_CAPACITY 32
+
+/* if a non-sysex non-realtime byte comes in during a sysex sequence, a sysex stop msg will be inserted, resulting in 2
+ * messages generated for just 1 byte  */
+#define MIDI_MAX_GENERATED_MESSAGES_PER_BYTE 2
 
 typedef struct MIDI_MsgBuffer {
-  MIDI_Message data[MIDI_OUT_BUFFER_SIZE];
+  MIDI_Message data[MIDI_OUT_BUFFER_CAPACITY];
   uint16_t     begin_idx;
   uint16_t     end_idx;
   bool         is_full;
@@ -50,11 +55,12 @@ typedef struct MIDI_Decoder {
   MIDI_MsgBuffer prio_msg_buffer;
 
   MIDI_Note    current_note;
-  MIDI_Control current_control;
   MIDI_Channel current_channel;
+  MIDI_Control current_control;
 
-  uint8_t pitch_bend_lsb;
-  uint8_t song_position_lsb;
+  uint8_t  pitch_bend_lsb;
+  uint8_t  song_position_lsb;
+  uint32_t sysex_sequence_length;
 
   uint8_t running_status;
 } MIDI_Decoder;
@@ -71,6 +77,8 @@ static inline bool         MIDI_decoder_is_ready(const MIDI_Decoder * restrict d
 
 static inline bool         MIDI_INT_buff_is_empty(const MIDI_MsgBuffer * restrict buffer);
 static inline bool         MIDI_INT_buff_is_full(const MIDI_MsgBuffer * restrict buffer);
+static inline uint8_t      MIDI_INT_buff_get_size(const MIDI_MsgBuffer * restrict buffer);
+static inline uint8_t      MIDI_INT_buff_get_space_available(const MIDI_MsgBuffer * restrict buffer);
 static inline MIDI_Message MIDI_INT_buff_pop(MIDI_MsgBuffer * restrict buffer);
 static inline void         MIDI_INT_buff_push(MIDI_MsgBuffer * restrict buffer, MIDI_Message msg);
 static inline MIDI_Message MIDI_INT_buff_peek(const MIDI_MsgBuffer * restrict buffer);
@@ -97,19 +105,30 @@ static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder)
 }
 
 static inline bool MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder) {
-  return (decoder != NULL) && !MIDI_INT_buff_is_full(&(decoder->msg_buffer)) &&
+  return (decoder != NULL) &&
+         (MIDI_INT_buff_get_space_available(&decoder->msg_buffer) >= MIDI_MAX_GENERATED_MESSAGES_PER_BYTE) &&
          !MIDI_INT_buff_is_full(&(decoder->prio_msg_buffer));
 }
 
 static inline bool MIDI_INT_buff_is_empty(const MIDI_MsgBuffer * restrict buffer) {
   return (buffer->begin_idx == buffer->end_idx) && !buffer->is_full;
 }
-static inline bool         MIDI_INT_buff_is_full(const MIDI_MsgBuffer * restrict buffer) { return buffer->is_full; }
+static inline bool MIDI_INT_buff_is_full(const MIDI_MsgBuffer * restrict buffer) { return buffer->is_full; }
+
+static inline uint8_t MIDI_INT_buff_get_size(const MIDI_MsgBuffer * restrict buffer) {
+  if(MIDI_INT_buff_is_empty(buffer)) return 0;
+  return ((MIDI_OUT_BUFFER_CAPACITY - buffer->begin_idx) + buffer->end_idx);
+}
+
+static inline uint8_t MIDI_INT_buff_get_space_available(const MIDI_MsgBuffer * restrict buffer) {
+  return MIDI_OUT_BUFFER_CAPACITY - MIDI_INT_buff_get_size(buffer);
+}
+
 static inline MIDI_Message MIDI_INT_buff_pop(MIDI_MsgBuffer * restrict buffer) {
   if(!MIDI_INT_buff_is_empty(buffer)) {
     const MIDI_Message m = buffer->data[buffer->begin_idx++];
 
-    if(buffer->begin_idx == MIDI_OUT_BUFFER_SIZE) buffer->begin_idx = 0;
+    if(buffer->begin_idx == MIDI_OUT_BUFFER_CAPACITY) buffer->begin_idx = 0;
     buffer->is_full = false;
 
     return m;
@@ -121,7 +140,7 @@ static inline void MIDI_INT_buff_push(MIDI_MsgBuffer * restrict buffer, MIDI_Mes
 
   buffer->data[buffer->end_idx++] = msg;
 
-  if(buffer->end_idx == MIDI_OUT_BUFFER_SIZE) buffer->end_idx = 0;
+  if(buffer->end_idx == MIDI_OUT_BUFFER_CAPACITY) buffer->end_idx = 0;
   if(buffer->end_idx == buffer->begin_idx) buffer->is_full = true;
 }
 static inline MIDI_Message MIDI_INT_buff_peek(const MIDI_MsgBuffer * restrict buffer) {

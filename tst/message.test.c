@@ -42,6 +42,8 @@ static Result tst_size(void) {
   EXPECT_EQ(&r, sizeof(MIDI_AftertouchPoly), 2);
   EXPECT_EQ(&r, sizeof(MIDI_QuarterFrame), 1);
   EXPECT_EQ(&r, sizeof(MIDI_SongPositionPointer), 2);
+  EXPECT_EQ(&r, sizeof(MIDI_SysexByte), 2);
+  EXPECT_EQ(&r, sizeof(MIDI_SysexStop), 2);
   EXPECT_EQ(&r, sizeof(MIDI_Message), 4);
 
   if(HAS_FAILED(&r)) {
@@ -54,6 +56,8 @@ static Result tst_size(void) {
     printf("%s=%zu\n", "sizeof(MIDI_AftertouchPoly)", sizeof(MIDI_AftertouchPoly));
     printf("%s=%zu\n", "sizeof(MIDI_QuarterFrame)", sizeof(MIDI_QuarterFrame));
     printf("%s=%zu\n", "sizeof(MIDI_SongPositionPointer)", sizeof(MIDI_SongPositionPointer));
+    printf("%s=%zu\n", "sizeof(MIDI_SysexByte)", sizeof(MIDI_SysexByte));
+    printf("%s=%zu\n", "sizeof(MIDI_SysexStop)", sizeof(MIDI_SysexStop));
     printf("%s=%zu\n", "sizeof(MIDI_Message)", sizeof(MIDI_Message));
   }
 
@@ -237,6 +241,20 @@ static Result tst_to_string(void) {
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[] =
+        "MIDI_Message{type=SYSEX_STOP, data=SysexStop{sequence_length=123, is_length_overflowed=false}}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer(str,
+                                         1024,
+                                         (MIDI_Message){.type            = MIDI_MSG_TYPE_SYSEX_STOP,
+                                                        .data.sysex_stop = {.sequence_length      = 123,
+                                                                            .is_length_overflowed = false}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
 
   return r;
 }
@@ -416,6 +434,19 @@ static Result tst_to_string_short(void) {
                                                1024,
                                                (MIDI_Message){.type = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
                                                               .data.song_position_pointer = {.value = 12345}}));
+    EXPECT_EQ(&r, strlen(expect_str), strlen(str));
+    EXPECT_STREQ(&r, expect_str, str);
+  }
+  {
+    char       str[1024 + 1] = {0};
+    const char expect_str[]  = "SSX_STOP{4334+}";
+    EXPECT_EQ(&r,
+              strlen(expect_str),
+              MIDI_message_to_str_buffer_short(str,
+                                               1024,
+                                               (MIDI_Message){.type            = MIDI_MSG_TYPE_SYSEX_STOP,
+                                                              .data.sysex_stop = {.sequence_length      = 4334,
+                                                                                  .is_length_overflowed = true}}));
     EXPECT_EQ(&r, strlen(expect_str), strlen(str));
     EXPECT_STREQ(&r, expect_str, str);
   }
@@ -630,6 +661,16 @@ static Result tst_equals_many(void) {
 
       {.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select = {.value = 119}},
       {.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select = {.value = 47}},
+
+      {.type = MIDI_MSG_TYPE_SYSEX_START},
+
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3a, .sequence_number = 0}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x3a, .sequence_number = 1}},
+      {.type = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE, .data.sysex_byte = {.byte = 0x2c, .sequence_number = 1}},
+
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 100, .is_length_overflowed = false}},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 101, .is_length_overflowed = false}},
+      {.type = MIDI_MSG_TYPE_SYSEX_STOP, .data.sysex_stop = {.sequence_length = 101, .is_length_overflowed = true}},
   };
 
   const size_t num_msgs = sizeof(msgs) / sizeof(msgs[0]);
@@ -643,6 +684,15 @@ static Result tst_equals_many(void) {
 
       if(HAS_FAILED(&r)) {
         printf("fail %zu ?= %zu\n", i, j);
+
+        char lhs_str[1024 + 1] = {0};
+        char rhs_str[1024 + 1] = {0};
+
+        MIDI_message_to_str_buffer_short(lhs_str, 1024, lhs);
+        MIDI_message_to_str_buffer_short(rhs_str, 1024, rhs);
+
+        printf("%s %s %s\n", lhs_str, (i == j) ? "!=" : "==", rhs_str);
+
         return r;
       }
     }

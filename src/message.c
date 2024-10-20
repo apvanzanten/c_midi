@@ -102,6 +102,22 @@ int MIDI_song_select_msg_to_str_buffer(char * str, int max_len, MIDI_SongSelect 
   return snprintf(str, max_len, "SongSelect{value=%u}", msg.value);
 }
 
+int MIDI_sysex_byte_msg_to_str_buffer(char * str, int max_len, MIDI_SysexByte msg) {
+  if(str == NULL) return 0;
+
+  return snprintf(str, max_len, "SysexByte{sequence_number=%u, byte=0x%x}", msg.sequence_number, msg.byte);
+}
+
+int MIDI_sysex_stop_msg_to_str_buffer(char * str, int max_len, MIDI_SysexStop msg) {
+  if(str == NULL) return 0;
+
+  return snprintf(str,
+                  max_len,
+                  "SysexStop{sequence_length=%u, is_length_overflowed=%s}",
+                  msg.sequence_length,
+                  msg.is_length_overflowed ? "true" : "false");
+}
+
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg) {
   if(str == NULL) return 0;
 
@@ -190,6 +206,18 @@ int MIDI_song_select_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongS
   return snprintf(str, max_len, "SS{%u}", msg.value);
 }
 
+int MIDI_sysex_byte_msg_to_str_buffer_short(char * str, int max_len, MIDI_SysexByte msg) {
+  if(str == NULL) return 0;
+
+  return snprintf(str, max_len, "SSX{%u:0x%x}", msg.sequence_number, msg.byte);
+}
+
+int MIDI_sysex_stop_msg_to_str_buffer_short(char * str, int max_len, MIDI_SysexStop msg) {
+  if(str == NULL) return 0;
+
+  return snprintf(str, max_len, "SSX_STOP{%u%s}", msg.sequence_length, msg.is_length_overflowed ? "+" : "");
+}
+
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
   if(str == NULL) return 0;
 
@@ -234,6 +262,12 @@ int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg) {
       break;
     case MIDI_MSG_TYPE_SONG_SELECT:
       len += MIDI_song_select_msg_to_str_buffer(&str[len], (max_len - len), msg.data.song_select);
+      break;
+    case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE:
+      len += MIDI_sysex_byte_msg_to_str_buffer(&str[len], (max_len - len), msg.data.sysex_byte);
+      break;
+    case MIDI_MSG_TYPE_SYSEX_STOP:
+      len += MIDI_sysex_stop_msg_to_str_buffer(&str[len], (max_len - len), msg.data.sysex_stop);
       break;
     default: len += snprintf(&str[len], max_len, "N/A"); break;
     }
@@ -287,12 +321,19 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
     case MIDI_MSG_TYPE_SONG_SELECT:
       len += MIDI_song_select_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.song_select);
       break;
+    case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE:
+      len += MIDI_sysex_byte_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.sysex_byte);
+      break;
+    case MIDI_MSG_TYPE_SYSEX_STOP:
+      len += MIDI_sysex_stop_msg_to_str_buffer_short(&str[len], (max_len - len), msg.data.sysex_stop);
+      break;
     case MIDI_MSG_TYPE_TIMING_CLOCK: len += snprintf(&str[len], (max_len - len), "TCLK"); break;
     case MIDI_MSG_TYPE_START: len += snprintf(&str[len], (max_len - len), "START"); break;
     case MIDI_MSG_TYPE_CONTINUE: len += snprintf(&str[len], (max_len - len), "CONT"); break;
     case MIDI_MSG_TYPE_STOP: len += snprintf(&str[len], (max_len - len), "STOP"); break;
     case MIDI_MSG_TYPE_ACTIVE_SENSING: len += snprintf(&str[len], (max_len - len), "ASENS"); break;
     case MIDI_MSG_TYPE_SYSTEM_RESET: len += snprintf(&str[len], (max_len - len), "RESET"); break;
+    case MIDI_MSG_TYPE_SYSEX_START: len += snprintf(&str[len], (max_len - len), "SSX_START"); break;
     default: len += snprintf(&str[len], (max_len - len), "??"); break;
     }
   }
@@ -305,34 +346,29 @@ bool MIDI_message_equals(MIDI_Message lhs, MIDI_Message rhs) {
 
   if(MIDI_is_single_byte_type(lhs.type)) return true;
 
-  if(MIDI_is_channel_type(lhs.type)) {
-    if(lhs.channel != rhs.channel) return false;
+  if(MIDI_is_channel_type(lhs.type) && (lhs.channel != rhs.channel)) return false;
 
-    switch(lhs.type) {
-    case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(lhs.data.note_off, rhs.data.note_off);
-    case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(lhs.data.note_on, rhs.data.note_on);
-    case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
-      return MIDI_aftertouch_poly_msg_equals(lhs.data.aftertouch_poly, rhs.data.aftertouch_poly);
-    case MIDI_MSG_TYPE_CONTROL_CHANGE:
-      return MIDI_control_change_msg_equals(lhs.data.control_change, rhs.data.control_change);
-    case MIDI_MSG_TYPE_PROGRAM_CHANGE:
-      return MIDI_program_change_msg_equals(lhs.data.program_change, rhs.data.program_change);
-    case MIDI_MSG_TYPE_AFTERTOUCH_MONO:
-      return MIDI_aftertouch_mono_msg_equals(lhs.data.aftertouch_mono, rhs.data.aftertouch_mono);
-    case MIDI_MSG_TYPE_PITCH_BEND: return MIDI_pitch_bend_msg_equals(lhs.data.pitch_bend, rhs.data.pitch_bend);
-    default: return false;
-    }
-  }
-
-  if(MIDI_is_system_type(lhs.type)) {
-    switch(lhs.type) {
-    case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
-      return MIDI_quarter_frame_msg_equals(lhs.data.quarter_frame, rhs.data.quarter_frame);
-    case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
-      return MIDI_song_position_pointer_msg_equals(lhs.data.song_position_pointer, rhs.data.song_position_pointer);
-    case MIDI_MSG_TYPE_SONG_SELECT: return MIDI_song_select_msg_equals(lhs.data.song_select, rhs.data.song_select);
-    default: return false;
-    }
+  switch(lhs.type) {
+  case MIDI_MSG_TYPE_NOTE_OFF: return MIDI_note_off_msg_equals(lhs.data.note_off, rhs.data.note_off);
+  case MIDI_MSG_TYPE_NOTE_ON: return MIDI_note_on_msg_equals(lhs.data.note_on, rhs.data.note_on);
+  case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
+    return MIDI_aftertouch_poly_msg_equals(lhs.data.aftertouch_poly, rhs.data.aftertouch_poly);
+  case MIDI_MSG_TYPE_CONTROL_CHANGE:
+    return MIDI_control_change_msg_equals(lhs.data.control_change, rhs.data.control_change);
+  case MIDI_MSG_TYPE_PROGRAM_CHANGE:
+    return MIDI_program_change_msg_equals(lhs.data.program_change, rhs.data.program_change);
+  case MIDI_MSG_TYPE_AFTERTOUCH_MONO:
+    return MIDI_aftertouch_mono_msg_equals(lhs.data.aftertouch_mono, rhs.data.aftertouch_mono);
+  case MIDI_MSG_TYPE_PITCH_BEND: return MIDI_pitch_bend_msg_equals(lhs.data.pitch_bend, rhs.data.pitch_bend);
+  case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
+    return MIDI_quarter_frame_msg_equals(lhs.data.quarter_frame, rhs.data.quarter_frame);
+  case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
+    return MIDI_song_position_pointer_msg_equals(lhs.data.song_position_pointer, rhs.data.song_position_pointer);
+  case MIDI_MSG_TYPE_SONG_SELECT: return MIDI_song_select_msg_equals(lhs.data.song_select, rhs.data.song_select);
+  case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE: return MIDI_sysex_byte_msg_equals(lhs.data.sysex_byte, rhs.data.sysex_byte);
+  case MIDI_MSG_TYPE_SYSEX_STOP: return MIDI_sysex_stop_msg_equals(lhs.data.sysex_stop, rhs.data.sysex_stop);
+  case MIDI_MSG_TYPE_SYSEX_START: return true; // special single-byte type, not included with the rest
+  default: return false;
   }
 
   return false;
@@ -373,3 +409,11 @@ bool MIDI_song_position_pointer_msg_equals(MIDI_SongPositionPointer lhs, MIDI_So
 }
 
 bool MIDI_song_select_msg_equals(MIDI_SongSelect lhs, MIDI_SongSelect rhs) { return (lhs.value == rhs.value); }
+
+bool MIDI_sysex_byte_msg_equals(MIDI_SysexByte lhs, MIDI_SysexByte rhs) {
+  return (lhs.byte == rhs.byte) && (lhs.sequence_number == rhs.sequence_number);
+}
+
+bool MIDI_sysex_stop_msg_equals(MIDI_SysexStop lhs, MIDI_SysexStop rhs) {
+  return (lhs.sequence_length == rhs.sequence_length) && (lhs.is_length_overflowed == rhs.is_length_overflowed);
+}

@@ -90,6 +90,6 @@ if (DEBUG) # For some reason cmake won't rebuild on test changes if this if stat
 
     AddTest(message_test message.test.c midi_message midi_note)
     AddTest(note_test note.test.c midi_note)
-    AddTest(decoder_test decoder.test.c midi_decoder midi_message midi_note)
+    AddTest(decoder_test decoder.test.c midi_decoder midi_message midi_note darray)
 
 endif()

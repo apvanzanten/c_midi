@@ -27,7 +27,8 @@
 #include "note.h"
 
 typedef enum MIDI_MessageType {
-  // NOTE excludes status bit
+  // NOTE values of 0x7f and below are standard MIDI types, above are extensions specific to this library, for the
+  // purpose of splitting up SYSEX sequences into separate (fixed size) messages.
 
   // channel types
   MIDI_MSG_TYPE_NOTE_OFF        = 0x00,
@@ -54,6 +55,10 @@ typedef enum MIDI_MessageType {
   MIDI_MSG_TYPE_STOP           = 0x7c,
   MIDI_MSG_TYPE_ACTIVE_SENSING = 0x7e,
   MIDI_MSG_TYPE_SYSTEM_RESET   = 0x7f,
+
+  // NON-STANDARD TYPES
+  // TODO write some docs on how we deal with sysex
+  MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE = 0x80,
 } MIDI_MessageType;
 
 static inline uint8_t      MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
@@ -62,6 +67,7 @@ static inline bool         MIDI_is_channel_type(MIDI_MessageType type);
 static inline bool         MIDI_is_system_type(MIDI_MessageType type);
 static inline bool         MIDI_is_real_time_type(MIDI_MessageType type);
 static inline bool         MIDI_is_single_byte_type(MIDI_MessageType type);
+static inline bool         MIDI_is_non_standard_type(MIDI_MessageType type);
 
 typedef struct MIDI_NoteOff {
   uint8_t note; // value of MIDI_Note
@@ -123,11 +129,24 @@ typedef struct MIDI_SongSelect {
   uint8_t value;
 } MIDI_SongSelect;
 
+typedef struct MIDI_SysexByte {
+
+  uint16_t sequence_number : 9; // NOTE may roll over, don't use as index unless you're sure sequence is <=512 in length
+  uint16_t byte : 7;            // NOTE using uint16_t instead of uint8_t to ensure desired packing behaviour
+} MIDI_SysexByte;
+
+typedef struct MIDI_SysexStop {
+  // MIDI does not specify a max length for sysex sequences. The vast majority of use cases will be below 32K bytes, but
+  // for the cases where it is not, the is_length_overflowed flag will indicate that sequence_length has rolled
+  // over (how many times it has rolled over is not communicated).
+  uint16_t sequence_length : 15;
+  uint16_t is_length_overflowed : 1; // NOTE using uint16_t instead of bool to ensure desired packing behaviour
+} MIDI_SysexStop;
+
 typedef struct MIDI_Message {
-  bool         is_non_standard_msg : 1; // currently unused, reserved for hacking our way into supporting sysex
-  uint8_t      type : 7;                // value of MIDI_MessageType
-  MIDI_Channel channel : 5;             // [1,16]
-  uint8_t      reserved : 3;            // reserved for who knows what
+  uint8_t      type;         // value of MIDI_MessageType
+  MIDI_Channel channel : 5;  // [1,16]
+  uint8_t      reserved : 3; // reserved for future use, may come in handy
 
   union {
     MIDI_NoteOff             note_off;
@@ -140,13 +159,18 @@ typedef struct MIDI_Message {
     MIDI_QuarterFrame        quarter_frame;
     MIDI_SongPositionPointer song_position_pointer;
     MIDI_SongSelect          song_select;
+    MIDI_SysexByte           sysex_byte;
+    MIDI_SysexStop           sysex_stop;
   } data;
 } MIDI_Message;
+
+_Static_assert(sizeof(MIDI_Message) == 4, "MIDI_Message does not fit in desired 4 bytes");
 
 static inline bool MIDI_is_channel_msg(MIDI_Message msg);
 static inline bool MIDI_is_system_msg(MIDI_Message msg);
 static inline bool MIDI_is_real_time_msg(MIDI_Message msg);
 static inline bool MIDI_is_single_byte_msg(MIDI_Message msg);
+static inline bool MIDI_is_non_standard_msg(MIDI_Message msg);
 
 int MIDI_note_off_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer(char * str, int max_len, MIDI_NoteOn msg);
@@ -158,6 +182,8 @@ int MIDI_aftertouch_poly_msg_to_str_buffer(char * str, int max_len, MIDI_Afterto
 int MIDI_quarter_frame_msg_to_str_buffer(char * str, int max_len, MIDI_QuarterFrame msg);
 int MIDI_song_position_pointer_msg_to_str_buffer(char * str, int max_len, MIDI_SongPositionPointer msg);
 int MIDI_song_select_msg_to_str_buffer(char * str, int max_len, MIDI_SongSelect msg);
+int MIDI_sysex_byte_msg_to_str_buffer(char * str, int max_len, MIDI_SysexByte msg);
+int MIDI_sysex_stop_msg_to_str_buffer(char * str, int max_len, MIDI_SysexStop msg);
 
 int MIDI_note_off_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOff msg);
 int MIDI_note_on_msg_to_str_buffer_short(char * str, int max_len, MIDI_NoteOn msg);
@@ -169,6 +195,8 @@ int MIDI_aftertouch_poly_msg_to_str_buffer_short(char * str, int max_len, MIDI_A
 int MIDI_quarter_frame_msg_to_str_buffer_short(char * str, int max_len, MIDI_QuarterFrame msg);
 int MIDI_song_position_pointer_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongPositionPointer msg);
 int MIDI_song_select_msg_to_str_buffer_short(char * str, int max_len, MIDI_SongSelect msg);
+int MIDI_sysex_byte_msg_to_str_buffer_short(char * str, int max_len, MIDI_SysexByte msg);
+int MIDI_sysex_stop_msg_to_str_buffer_short(char * str, int max_len, MIDI_SysexStop msg);
 
 int MIDI_message_to_str_buffer(char * str, int max_len, MIDI_Message msg);
 int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg);
@@ -185,6 +213,8 @@ bool MIDI_aftertouch_poly_msg_equals(MIDI_AftertouchPoly lhs, MIDI_AftertouchPol
 bool MIDI_quarter_frame_msg_equals(MIDI_QuarterFrame lhs, MIDI_QuarterFrame rhs);
 bool MIDI_song_position_pointer_msg_equals(MIDI_SongPositionPointer lhs, MIDI_SongPositionPointer rhs);
 bool MIDI_song_select_msg_equals(MIDI_SongSelect lhs, MIDI_SongSelect rhs);
+bool MIDI_sysex_byte_msg_equals(MIDI_SysexByte lhs, MIDI_SysexByte rhs);
+bool MIDI_sysex_stop_msg_equals(MIDI_SysexStop lhs, MIDI_SysexStop rhs);
 
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   switch(t) {
@@ -207,6 +237,7 @@ static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   case MIDI_MSG_TYPE_STOP: return "STOP";
   case MIDI_MSG_TYPE_ACTIVE_SENSING: return "ACTIVE_SENSING";
   case MIDI_MSG_TYPE_SYSTEM_RESET: return "SYSTEM_RESET";
+  case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE: return "NON_STD_SYSEX_BYTE";
   }
   return "UNKNOWN";
 }
@@ -258,7 +289,7 @@ static inline bool MIDI_is_single_byte_type(MIDI_MessageType type) {
   if(MIDI_is_real_time_type(type)) return true;
   switch(type) {
   case MIDI_MSG_TYPE_TUNE_REQUEST: return true;
-  case MIDI_MSG_TYPE_SYSEX_STOP: return true;
+  // NOTE sysex start/stop are not treated as single-byte, as they start/stop a sequence, and are treated specially
   default: return false;
   }
 }
@@ -295,5 +326,14 @@ static inline const char * MIDI_quarter_frame_type_to_str_short(MIDI_QuarterFram
   }
   return "UNKNOWN";
 }
+
+static inline bool MIDI_is_non_standard_type(MIDI_MessageType type) {
+  switch(type) {
+  case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE: return true;
+  default: return false;
+  }
+}
+
+static inline bool MIDI_is_non_standard_msg(MIDI_Message msg) { return MIDI_is_non_standard_type(msg.type); }
 
 #endif
