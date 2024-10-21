@@ -201,11 +201,125 @@ static Result tst_channel_messages(void * env) {
   return r;
 }
 
+static Result tst_realtime_messages(void * env) {
+  Result         r       = PASS;
+  MIDI_Encoder * encoder = (MIDI_Encoder *)env;
+
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+
+  const MIDI_Message input[] = {
+      // clang-format off
+      {.type = MIDI_MSG_TYPE_ACTIVE_SENSING},
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_CONTINUE},
+      {.type = MIDI_MSG_TYPE_START},
+      {.type = MIDI_MSG_TYPE_STOP},
+      {.type = MIDI_MSG_TYPE_SYSTEM_RESET},
+      // clang-format on
+  };
+  const uint8_t expect_output[] = {
+      // clang-format off
+      // status byte
+      0x80 | MIDI_MSG_TYPE_ACTIVE_SENSING,
+      0x80 | MIDI_MSG_TYPE_TIMING_CLOCK,
+      0x80 | MIDI_MSG_TYPE_CONTINUE,
+      0x80 | MIDI_MSG_TYPE_START,
+      0x80 | MIDI_MSG_TYPE_STOP,
+      0x80 | MIDI_MSG_TYPE_SYSTEM_RESET,
+      // clang-format on
+  };
+
+  expect_output_given_input(&r,
+                            __func__,
+                            encoder,
+                            input,
+                            sizeof(input) / sizeof(input[0]),
+                            expect_output,
+                            sizeof(expect_output) / sizeof(expect_output[0]));
+
+  return r;
+}
+
+static Result tst_channel_messages_with_realtime_interruptions(void * env) {
+  Result         r       = PASS;
+  MIDI_Encoder * encoder = (MIDI_Encoder *)env;
+
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+
+  const MIDI_Message input[] = {
+      // clang-format off
+      {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = 3, .data.note_off = {.note = MIDI_NOTE_E_3, .velocity = 99}},
+      {.type = MIDI_MSG_TYPE_ACTIVE_SENSING},
+      {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = 3, .data.note_off = {.note = MIDI_NOTE_G_3, .velocity = 95}},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = 1, .data.note_on = {.note = MIDI_NOTE_C_8, .velocity = 80}},
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_NOTE_ON, .channel = 1, .data.note_on = {.note = MIDI_NOTE_G_3, .velocity = 12}},
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = 3, .data.control_change = {.control = MIDI_CTRL_ATTACK_TIME, .value = 20}},
+      {.type = MIDI_MSG_TYPE_CONTINUE},
+      {.type = MIDI_MSG_TYPE_CONTROL_CHANGE, .channel = 3, .data.control_change = {.control = MIDI_CTRL_CUTOFF_FREQUENCY, .value = 50}},
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = 2, .data.program_change = {.program_id = 2}},
+      {.type = MIDI_MSG_TYPE_START},
+      {.type = MIDI_MSG_TYPE_PROGRAM_CHANGE, .channel = 2, .data.program_change = {.program_id = 23}},
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = 2, .data.pitch_bend = {.value = make_pitch_bend_value(0x1a, 0x4b)}},
+      {.type = MIDI_MSG_TYPE_STOP},
+      {.type = MIDI_MSG_TYPE_PITCH_BEND, .channel = 2, .data.pitch_bend = {.value = make_pitch_bend_value(0x2c, 0x5d)}},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = 1, .data.aftertouch_mono = {.value = 29}},
+      {.type = MIDI_MSG_TYPE_TIMING_CLOCK},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_MONO, .channel = 1, .data.aftertouch_mono = {.value = 34}},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = 1, .data.aftertouch_poly = {.note = MIDI_NOTE_C_3, .value = 38}},
+      {.type = MIDI_MSG_TYPE_ACTIVE_SENSING},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = 1, .data.aftertouch_poly = {.note = MIDI_NOTE_G_3, .value = 38}},
+      {.type = MIDI_MSG_TYPE_SYSTEM_RESET},
+      {.type = MIDI_MSG_TYPE_AFTERTOUCH_POLY, .channel = 1, .data.aftertouch_poly = {.note = MIDI_NOTE_G_4, .value = 38}},
+      // clang-format on
+  };
+  const uint8_t expect_output[] = {
+      // clang-format off
+      // status byte                                    first data byte               second data byte 
+      0x80 | MIDI_MSG_TYPE_NOTE_OFF | 2,                MIDI_NOTE_E_3,                99,
+      0x80 | MIDI_MSG_TYPE_ACTIVE_SENSING,
+      /* no status byte, running mode */                MIDI_NOTE_G_3,                95,
+      0x80 | MIDI_MSG_TYPE_NOTE_ON  /* | 0 */,          MIDI_NOTE_C_8,                80,
+      0x80 | MIDI_MSG_TYPE_TIMING_CLOCK,
+      /* no status byte, running mode */                MIDI_NOTE_G_3,                12,
+      0x80 | MIDI_MSG_TYPE_CONTROL_CHANGE | 2,          MIDI_CTRL_ATTACK_TIME,        20,
+      0x80 | MIDI_MSG_TYPE_CONTINUE,
+      /* no status byte, running mode */                MIDI_CTRL_CUTOFF_FREQUENCY,   50,
+      0x80 | MIDI_MSG_TYPE_PROGRAM_CHANGE | 1,          2,
+      0x80 | MIDI_MSG_TYPE_START,
+      /* no status byte, running mode */                23,
+      0x80 | MIDI_MSG_TYPE_PITCH_BEND | 1,              0x1a,                         0x4b,
+      0x80 | MIDI_MSG_TYPE_STOP,
+      /* no status byte, running mode */                0x2c,                         0x5d,
+      0x80 | MIDI_MSG_TYPE_AFTERTOUCH_MONO /* | 0 */,   29,
+      0x80 | MIDI_MSG_TYPE_TIMING_CLOCK,
+      /* no status byte, running mode */                34,
+      0x80 | MIDI_MSG_TYPE_AFTERTOUCH_POLY  /* | 0 */,  MIDI_NOTE_C_3,                38,
+      0x80 | MIDI_MSG_TYPE_ACTIVE_SENSING,
+      /* no status byte, running mode */                MIDI_NOTE_G_3,                38,
+      0x80 | MIDI_MSG_TYPE_SYSTEM_RESET, // is realtime but should reset running state regardless
+      0x80 | MIDI_MSG_TYPE_AFTERTOUCH_POLY  /* | 0 */,  MIDI_NOTE_G_4,                38,
+      // clang-format on
+  };
+
+  expect_output_given_input(&r,
+                            __func__,
+                            encoder,
+                            input,
+                            sizeof(input) / sizeof(input[0]),
+                            expect_output,
+                            sizeof(expect_output) / sizeof(expect_output[0]));
+
+  return r;
+}
+
 int main(void) {
   TestWithFixture tests_with_fixture[] = {
       tst_fixture,
       tst_note_on_off,
       tst_channel_messages,
+      tst_realtime_messages,
+      tst_channel_messages_with_realtime_interruptions,
   };
 
   return (run_tests_with_fixture(tests_with_fixture,

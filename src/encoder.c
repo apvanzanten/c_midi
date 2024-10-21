@@ -75,6 +75,19 @@ STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message
 
   bool msg_finished = false;
 
+  if(MIDI_is_real_time_msg(msg)) {
+    // real time messages are sent immediately, as they are allowed to be interleaved with everything
+    push_byte(encoder, 0x80 | msg.type);
+
+    if(msg.type == MIDI_MSG_TYPE_SYSTEM_RESET) {
+      encoder->state           = ST_INIT;
+      encoder->running_channel = 0;
+      encoder->running_type    = 0;
+    }
+
+    msg_finished = true;
+  }
+
   while(!msg_finished) {
     switch(encoder->state) {
 

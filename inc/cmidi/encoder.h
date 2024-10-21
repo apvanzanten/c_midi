@@ -38,6 +38,8 @@ typedef struct MIDI_ByteBuffer {
   bool    is_full;
 } MIDI_ByteBuffer;
 
+// TODO rt priority
+
 typedef struct MIDI_Encoder {
   uint8_t state;
 
@@ -62,6 +64,7 @@ static inline uint8_t MIDI_IMPL_encoder_buff_get_space_available(const MIDI_Byte
 static inline uint8_t MIDI_IMPL_encoder_buff_pop(MIDI_ByteBuffer * restrict buffer);
 static inline void    MIDI_IMPL_encoder_buff_push(MIDI_ByteBuffer * restrict buffer, uint8_t byte);
 static inline uint8_t MIDI_IMPL_encoder_buff_peek(const MIDI_ByteBuffer * restrict buffer);
+static inline void    MIDI_IMPL_encoder_buff_clear(MIDI_ByteBuffer * restrict buffer);
 
 static inline bool MIDI_encoder_has_output(const MIDI_Encoder * restrict encoder) {
   return (encoder != NULL) && !MIDI_IMPL_encoder_buff_is_empty(&encoder->out_buffer);
@@ -118,5 +121,7 @@ static inline void MIDI_IMPL_encoder_buff_push(MIDI_ByteBuffer * restrict buffer
 static inline uint8_t MIDI_IMPL_encoder_buff_peek(const MIDI_ByteBuffer * restrict buffer) {
   return buffer->data[buffer->begin_idx];
 }
+
+static inline void MIDI_IMPL_encoder_buff_clear(MIDI_ByteBuffer * restrict buffer) { *buffer = (MIDI_ByteBuffer){0}; }
 
 #endif
