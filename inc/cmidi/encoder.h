@@ -45,8 +45,10 @@ typedef struct MIDI_Encoder {
 
   MIDI_ByteBuffer out_buffer;
 
-  MIDI_MessageType running_type;
-  MIDI_Channel     running_channel;
+  MIDI_MessageType current_type;
+  MIDI_Channel     current_channel;
+
+  uint32_t sysex_sequence_length;
 } MIDI_Encoder;
 
 STAT_Val MIDI_encoder_init(MIDI_Encoder * restrict encoder);

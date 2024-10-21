@@ -59,6 +59,7 @@ typedef enum MIDI_MessageType {
   // NON-STANDARD TYPES
   // TODO write some docs on how we deal with sysex
   MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE = 0x80,
+  MIDI_MSG_TYPE_NON_STD_NONE,
 } MIDI_MessageType;
 
 static inline uint8_t      MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
@@ -238,6 +239,7 @@ static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   case MIDI_MSG_TYPE_ACTIVE_SENSING: return "ACTIVE_SENSING";
   case MIDI_MSG_TYPE_SYSTEM_RESET: return "SYSTEM_RESET";
   case MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE: return "NON_STD_SYSEX_BYTE";
+  case MIDI_MSG_TYPE_NON_STD_NONE: return "NON_STD_NONE";
   }
   return "UNKNOWN";
 }

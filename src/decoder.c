@@ -82,7 +82,7 @@ static uint8_t               get_type_bits(uint8_t byte);
 static MIDI_MessageType      get_type(uint8_t status_byte);
 static uint8_t               get_channel(uint8_t status_byte);
 static MIDI_QuarterFrameType get_quarter_frame_type(uint8_t byte);
-static MIDI_QuarterFrameType get_quarter_frame_value(uint8_t byte);
+static uint8_t               get_quarter_frame_value(uint8_t byte);
 static bool                  is_status(uint8_t byte);
 static bool                  is_of_type(uint8_t byte, MIDI_MessageType type);
 static bool                  is_channel_type(uint8_t status_byte);
@@ -493,7 +493,7 @@ static uint8_t get_channel(uint8_t status_byte) { return get_channel_bits(status
 
 static MIDI_QuarterFrameType get_quarter_frame_type(uint8_t byte) { return (byte & 0xf0) >> 4; }
 
-static MIDI_QuarterFrameType get_quarter_frame_value(uint8_t byte) { return byte & 0x0f; }
+static uint8_t get_quarter_frame_value(uint8_t byte) { return byte & 0x0f; }
 
 static MIDI_MessageType get_type(uint8_t status_byte) { return (MIDI_MessageType)(get_type_bits(status_byte)); }
 
