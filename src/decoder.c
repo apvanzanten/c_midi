@@ -25,13 +25,6 @@
 
 #define LOGGING_ENABLED 0
 
-#if LOGGING_ENABLED
-#define LOG(decoder, byte, msg)                                                                                        \
-  LOG_STAT(STAT_OK_INFO, "state=%s; byte=(%d == 0x%x); %s", state_to_string((decoder)->state), (byte), (byte), (msg));
-#else
-#define LOG(...)
-#endif
-
 typedef enum StateIdx {
   ST_INIT,
   ST_RUNNING_NOTE_ON,
@@ -53,7 +46,8 @@ typedef enum StateIdx {
   ST_IN_SYSEX_SEQUENCE,
 } StateIdx;
 
-const char * state_to_string(StateIdx state) {
+#if LOGGING_ENABLED
+static const char * state_to_string(StateIdx state) {
   switch(state) {
   case ST_INIT: return "ST_INIT";
   case ST_RUNNING_NOTE_ON: return "ST_RUNNING_NOTE_ON";
@@ -76,6 +70,12 @@ const char * state_to_string(StateIdx state) {
   }
   return "UNKNOWN";
 }
+
+#define LOG(decoder, byte, msg)                                                                                        \
+  LOG_STAT(STAT_OK_INFO, "state=%s; byte=(%d == 0x%x); %s", state_to_string((decoder)->state), (byte), (byte), (msg));
+#else
+#define LOG(...)
+#endif
 
 static uint8_t               get_status_bit(uint8_t byte);
 static uint8_t               get_type_bits(uint8_t byte);

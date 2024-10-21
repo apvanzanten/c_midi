@@ -30,16 +30,6 @@ typedef enum StateIdx {
   ST_IN_SYSEX_SEQUENCE,
 } StateIdx;
 
-const char * state_to_string(StateIdx state) {
-  switch(state) {
-  case ST_INIT: return "ST_INIT";
-  case ST_RUNNING_STATUS: return "ST_RUNNING_STATUS";
-  case ST_SYSTEM_MESSAGE_STARTED: return "ST_SYSTEM_MESSAGE_STARTED";
-  case ST_IN_SYSEX_SEQUENCE: return "ST_IN_SYSEX_SEQUENCE";
-  }
-  return "UNKNOWN";
-}
-
 static void buff_init(MIDI_ByteBuffer * restrict buffer) { *buffer = (MIDI_ByteBuffer){0}; }
 
 STAT_Val MIDI_encoder_init(MIDI_Encoder * restrict encoder) {
