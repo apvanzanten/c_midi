@@ -27,8 +27,7 @@
 
 #include <cfac/stat.h>
 
-// TODO shrink?
-#define MIDI_OUT_BUFFER_CAPACITY 32
+#define MIDI_OUT_BUFFER_CAPACITY 16
 
 /* if a non-sysex non-realtime byte comes in during a sysex sequence, a sysex stop msg will be inserted, resulting in 2
  * messages generated for just 1 byte  */
