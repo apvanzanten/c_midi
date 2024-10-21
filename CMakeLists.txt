@@ -74,6 +74,9 @@ target_link_libraries(midi_message midi_note)
 add_library(midi_decoder ${SRC_DIR}/decoder.c)
 target_link_libraries(midi_decoder midi_note midi_message log)
 
+add_library(midi_encoder ${SRC_DIR}/encoder.c)
+target_link_libraries(midi_encoder midi_note midi_message log)
+
 # --- tests ---
 
 if (DEBUG) # For some reason cmake won't rebuild on test changes if this if statement is here :(
@@ -91,5 +94,6 @@ if (DEBUG) # For some reason cmake won't rebuild on test changes if this if stat
     AddTest(message_test message.test.c midi_message midi_note)
     AddTest(note_test note.test.c midi_note)
     AddTest(decoder_test decoder.test.c midi_decoder midi_message midi_note darray)
+    AddTest(encoder_test encoder.test.c midi_encoder midi_message midi_note)
 
 endif()

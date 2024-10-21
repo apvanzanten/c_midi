@@ -31,12 +31,12 @@
 
 /* if a non-sysex non-realtime byte comes in during a sysex sequence, a sysex stop msg will be inserted, resulting in 2
  * messages generated for just 1 byte  */
-#define MIDI_MAX_GENERATED_MESSAGES_PER_BYTE 2
+#define MIDI_DECODER_MAX_GENERATED_MESSAGES_PER_BYTE 2
 
 typedef struct MIDI_MsgBuffer {
   MIDI_Message data[MIDI_DECODER_OUT_BUFFER_CAPACITY];
-  uint16_t     begin_idx;
-  uint16_t     end_idx;
+  uint8_t      begin_idx;
+  uint8_t      end_idx;
   bool         is_full;
 } MIDI_MsgBuffer;
 
@@ -105,7 +105,8 @@ static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder)
 
 static inline bool MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder) {
   return (decoder != NULL) &&
-         (MIDI_IMPL_decoder_buff_get_space_available(&decoder->msg_buffer) >= MIDI_MAX_GENERATED_MESSAGES_PER_BYTE) &&
+         (MIDI_IMPL_decoder_buff_get_space_available(&decoder->msg_buffer) >=
+          MIDI_DECODER_MAX_GENERATED_MESSAGES_PER_BYTE) &&
          !MIDI_IMPL_decoder_buff_is_full(&(decoder->prio_msg_buffer));
 }
 
