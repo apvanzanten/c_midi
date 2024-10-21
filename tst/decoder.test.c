@@ -72,9 +72,9 @@ static Result tst_note_on(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 100;
 
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, velocity_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -106,9 +106,9 @@ static Result tst_note_on_zero_velocity(void * env) {
   const uint8_t          note_byte     = MIDI_note_to_byte(note);
   const uint8_t          velocity_byte = 0;
 
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, velocity_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, velocity_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -138,8 +138,8 @@ static Result tst_aftertouch_mono(void * env) {
   const uint8_t          status_byte = status_bit | msg_type | TEST_CHANNEL_1_BITS;
   const uint8_t          value_byte  = 27;
 
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, value_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, value_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -168,9 +168,9 @@ static Result tst_aftertouch_poly(void * env) {
   const uint8_t          note_byte   = MIDI_NOTE_B_5;
   const uint8_t          value_byte  = 73;
 
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, note_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, value_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, note_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, value_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -200,8 +200,8 @@ static Result tst_program_change(void * env) {
   const uint8_t          status_byte = status_bit | msg_type | TEST_CHANNEL_1_BITS;
   const uint8_t          program_id  = 44;
 
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, status_byte));
-  EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, program_id));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, program_id));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -232,12 +232,12 @@ static Result tst_real_time(void * env) {
   const uint8_t active_sense_byte = status_bit | MIDI_MSG_TYPE_ACTIVE_SENSING;
   const uint8_t reset_byte        = status_bit | MIDI_MSG_TYPE_SYSTEM_RESET;
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, timing_clock_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, start_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, continue_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, stop_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, active_sense_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, reset_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, timing_clock_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, start_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, continue_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, stop_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, active_sense_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, reset_byte));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -292,21 +292,21 @@ static Result tst_real_time_with_running_status(void * env) {
   const uint8_t active_sense_byte = status_bit | MIDI_MSG_TYPE_ACTIVE_SENSING;
   const uint8_t reset_byte        = status_bit | MIDI_MSG_TYPE_SYSTEM_RESET;
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, program_change_status_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, program_change_status_byte));
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, timing_clock_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, start_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, continue_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, stop_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, active_sense_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, timing_clock_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, start_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, continue_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, stop_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, active_sense_byte));
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, program_id)); // results in completion of program change message
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, program_id)); // results in completion of program change message
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, program_change_status_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, program_change_status_byte));
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, reset_byte)); // aborts program change message
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, reset_byte)); // aborts program change message
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, program_id)); // does not result in completion of program change message
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, program_id)); // does not result in completion of program change message
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
 
@@ -364,7 +364,7 @@ static Result tst_real_time_prio_mode(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
 
-  EXPECT_OK(&r, MIDI_decoder_set_prio_mode(decoder, MIDI_DECODE_PRIO_MODE_REALTIME_FIRST));
+  EXPECT_OK(&r, MIDI_decoder_set_prio_mode(decoder, MIDI_DECODER_PRIO_MODE_REALTIME_FIRST));
 
   const uint8_t status_bit = (1 << 7); // 0b1000'0000
 
@@ -393,7 +393,7 @@ static Result tst_real_time_prio_mode(void * env) {
 
   for(size_t push_idx = 0; (push_idx < (sizeof(bytes) / sizeof(bytes[0]))); push_idx++) {
     EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
-    EXPECT_EQ(&r, OK, MIDI_push_byte(decoder, bytes[push_idx]));
+    EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, bytes[push_idx]));
     if(HAS_FAILED(&r)) return r;
   }
 
@@ -439,9 +439,9 @@ static Result tst_song_position_pointer(void * env) {
   const uint8_t  value_msb   = (value >> 7) & 0x7f;
   const uint8_t  value_lsb   = value & 0x7f;
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, status_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, value_lsb));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, value_msb));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, value_lsb));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, value_msb));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
   if(HAS_FAILED(&r)) return r;
@@ -472,8 +472,8 @@ static Result tst_song_select(void * env) {
   const uint8_t status_byte = status_bit | MIDI_MSG_TYPE_SONG_SELECT;
   const uint8_t value       = 100;
 
-  EXPECT_OK(&r, MIDI_push_byte(decoder, status_byte));
-  EXPECT_OK(&r, MIDI_push_byte(decoder, value));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, status_byte));
+  EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, value));
 
   EXPECT_TRUE(&r, MIDI_decoder_has_output(decoder));
   if(HAS_FAILED(&r)) return r;
@@ -850,7 +850,7 @@ static Result setup(void ** env_p) {
   EXPECT_NE(&r, NULL, *pars_p);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p, MIDI_DECODE_PRIO_MODE_FIFO));
+  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p, MIDI_DECODER_PRIO_MODE_FIFO));
 
   return r;
 }
@@ -885,7 +885,7 @@ static void check_input_and_output(Result *             r_ptr,
 
   for(size_t output_idx = 0; output_idx < expect_output_n; output_idx++) {
     for(; (input_idx < input_n) && MIDI_decoder_is_ready(decoder); input_idx++) {
-      EXPECT_EQ(r_ptr, OK, MIDI_push_byte(decoder, input[input_idx]));
+      EXPECT_EQ(r_ptr, OK, MIDI_decoder_push_byte(decoder, input[input_idx]));
       if(HAS_FAILED(r_ptr)) return;
     }
 

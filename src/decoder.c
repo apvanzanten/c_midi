@@ -117,7 +117,7 @@ STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_Decode
   return OK;
 }
 
-STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
+STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
   if(!MIDI_decoder_is_ready(decoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "decoder not ready");
 
@@ -125,9 +125,9 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
   if(is_real_time(byte)) {
     if(MIDI_decoder_is_in_realtime_prio_mode(decoder)) {
-      MIDI_INT_buff_push(&(decoder->prio_msg_buffer), (MIDI_Message){.type = get_type(byte)});
+      MIDI_IMPL_decoder_buff_push(&(decoder->prio_msg_buffer), (MIDI_Message){.type = get_type(byte)});
     } else {
-      MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+      MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
     }
 
     if(is_system_reset(byte)) decoder->state = ST_INIT;
@@ -146,7 +146,7 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
       if(is_status(byte)) {
         if(is_single_byte_type(byte)) {
           // single-byte type messages are all type-only, so we can push immediately
-          MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+          MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
         } else {
           if(is_channel_type(byte)) decoder->current_channel = get_channel(byte);
 
@@ -162,7 +162,7 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
           case MIDI_MSG_TYPE_SONG_POSITION_POINTER: decoder->state = ST_SONG_POSITION_POINTER_STARTED; break;
           case MIDI_MSG_TYPE_SONG_SELECT: decoder->state = ST_SONG_SELECT_STARTED; break;
           case MIDI_MSG_TYPE_SYSEX_START:
-            MIDI_INT_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
+            MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
             decoder->sysex_sequence_length = 0;
             decoder->state                 = ST_IN_SYSEX_SEQUENCE;
             break;
@@ -197,10 +197,10 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_NOTE_ON_WITH_VALID_NOTE: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
-                                          .channel      = decoder->current_channel,
-                                          .data.note_on = {.note = decoder->current_note, .velocity = byte}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type         = MIDI_MSG_TYPE_NOTE_ON,
+                                                   .channel      = decoder->current_channel,
+                                                   .data.note_on = {.note = decoder->current_note, .velocity = byte}});
 
         decoder->state = ST_RUNNING_NOTE_ON; // successfully parsed note, we may get another
       } else {
@@ -228,10 +228,10 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_NOTE_OFF_WITH_VALID_NOTE: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
-                                          .channel       = decoder->current_channel,
-                                          .data.note_off = {.note = decoder->current_note, .velocity = byte}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
+                                                   .channel       = decoder->current_channel,
+                                                   .data.note_off = {.note = decoder->current_note, .velocity = byte}});
 
         decoder->state = ST_RUNNING_NOTE_OFF; // successfully parsed note, we may get another
       } else {
@@ -259,11 +259,12 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_CONTROL_CHANGE_WITH_VALID_CONTROL: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type    = MIDI_MSG_TYPE_CONTROL_CHANGE,
-                                          .channel = decoder->current_channel,
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type    = MIDI_MSG_TYPE_CONTROL_CHANGE,
+                                                   .channel = decoder->current_channel,
 
-                                          .data.control_change = {.control = decoder->current_control, .value = byte}});
+                                                   .data.control_change = {.control = decoder->current_control,
+                                                                           .value   = byte}});
 
         decoder->state = ST_RUNNING_CONTROL_CHANGE;
       } else {
@@ -277,11 +278,11 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_RUNNING_PROGRAM_CHANGE: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type    = MIDI_MSG_TYPE_PROGRAM_CHANGE,
-                                          .channel = decoder->current_channel,
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type    = MIDI_MSG_TYPE_PROGRAM_CHANGE,
+                                                   .channel = decoder->current_channel,
 
-                                          .data.program_change.program_id = byte});
+                                                   .data.program_change.program_id = byte});
 
         // stay in same running state
       } else {
@@ -308,11 +309,11 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_PITCH_BEND_LSB_RECEIVED: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
-                                          .channel         = decoder->current_channel,
-                                          .data.pitch_bend = {
-                                              .value = make_pitch_bend_value(decoder->pitch_bend_lsb, byte)}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type            = MIDI_MSG_TYPE_PITCH_BEND,
+                                                   .channel         = decoder->current_channel,
+                                                   .data.pitch_bend = {
+                                                       .value = make_pitch_bend_value(decoder->pitch_bend_lsb, byte)}});
 
         decoder->state = ST_RUNNING_PITCH_BEND; // pitch bend parsed OK, maybe we get another
       } else {
@@ -326,10 +327,10 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_RUNNING_AFTERTOUCH_MONO: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type                       = MIDI_MSG_TYPE_AFTERTOUCH_MONO,
-                                          .channel                    = decoder->current_channel,
-                                          .data.aftertouch_mono.value = byte});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type                       = MIDI_MSG_TYPE_AFTERTOUCH_MONO,
+                                                   .channel                    = decoder->current_channel,
+                                                   .data.aftertouch_mono.value = byte});
 
         // stay in same running state
       } else {
@@ -356,10 +357,11 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_AFTERTOUCH_POLY_WITH_VALID_NOTE: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type                 = MIDI_MSG_TYPE_AFTERTOUCH_POLY,
-                                          .channel              = decoder->current_channel,
-                                          .data.aftertouch_poly = {.note = decoder->current_note, .value = byte}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type                 = MIDI_MSG_TYPE_AFTERTOUCH_POLY,
+                                                   .channel              = decoder->current_channel,
+                                                   .data.aftertouch_poly = {.note  = decoder->current_note,
+                                                                            .value = byte}});
 
         decoder->state = ST_RUNNING_AFTERTOUCH_POLY; // parsed OK, maybe we get another
       } else {
@@ -373,10 +375,10 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_MTC_QUARTER_FRAME_STARTED: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
-                                          .data.quarter_frame = {.type  = get_quarter_frame_type(byte),
-                                                                 .value = get_quarter_frame_value(byte)}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type               = MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
+                                                   .data.quarter_frame = {.type  = get_quarter_frame_type(byte),
+                                                                          .value = get_quarter_frame_value(byte)}});
 
         decoder->state = ST_INIT; // parsed OK, but there is no running status for this message type
       } else {
@@ -403,11 +405,12 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_SONG_POSITION_POINTER_LSB_RECEIVED: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type                       = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
-                                          .data.song_position_pointer = {
-                                              .value =
-                                                  make_song_position_pointer_value(decoder->song_position_lsb, byte)}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type                       = MIDI_MSG_TYPE_SONG_POSITION_POINTER,
+                                                   .data.song_position_pointer = {
+                                                       .value =
+                                                           make_song_position_pointer_value(decoder->song_position_lsb,
+                                                                                            byte)}});
 
         decoder->state = ST_INIT; // song position pointer parsed OK
       } else {
@@ -421,9 +424,9 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_SONG_SELECT_STARTED: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type             = MIDI_MSG_TYPE_SONG_SELECT,
-                                          .data.song_select = {.value = byte & 0x7f}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type             = MIDI_MSG_TYPE_SONG_SELECT,
+                                                   .data.song_select = {.value = byte & 0x7f}});
 
         decoder->state = ST_INIT; // parsed OK, but there is no running status for this message type
       } else {
@@ -437,11 +440,11 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
     case ST_IN_SYSEX_SEQUENCE: {
       LOG(decoder, byte, "state entry");
       if(is_data_byte(byte)) {
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type            = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE,
-                                          .data.sysex_byte = {.byte = (byte & 0x7f),
-                                                              .sequence_number =
-                                                                  (decoder->sysex_sequence_length & 0x1ff)}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type            = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE,
+                                                   .data.sysex_byte = {.byte = (byte & 0x7f),
+                                                                       .sequence_number =
+                                                                           (decoder->sysex_sequence_length & 0x1ff)}});
         decoder->sysex_sequence_length++;
 
         LOG(decoder, byte, "sysex byte added to sequence");
@@ -449,12 +452,12 @@ STAT_Val MIDI_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
         // stay in same state, more bytes may be on the way
       } else {
         // byte not part of sysex sequence, end it
-        MIDI_INT_buff_push(&(decoder->msg_buffer),
-                           (MIDI_Message){.type            = MIDI_MSG_TYPE_SYSEX_STOP,
-                                          .data.sysex_stop = {.sequence_length =
-                                                                  (decoder->sysex_sequence_length & 0x7fff),
-                                                              .is_length_overflowed =
-                                                                  (decoder->sysex_sequence_length > 0x7fff)}});
+        MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer),
+                                    (MIDI_Message){.type            = MIDI_MSG_TYPE_SYSEX_STOP,
+                                                   .data.sysex_stop = {.sequence_length =
+                                                                           (decoder->sysex_sequence_length & 0x7fff),
+                                                                       .is_length_overflowed =
+                                                                           (decoder->sysex_sequence_length > 0x7fff)}});
 
         decoder->sysex_sequence_length = 0;
 
