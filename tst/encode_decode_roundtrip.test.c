@@ -89,7 +89,6 @@ static void expect_same_messages_across_roundtrip(Result *           r_ptr,
       const uint8_t byte = MIDI_encoder_pop_byte(encoder);
       EXPECT_OK(r_ptr, DAR_push_back(&bytes, &byte));
 
-      // if(is_verbose) printf("pop  0x%x/0d%u (%zu)\n", byte, byte, bytes.size);
       if(is_verbose) {
         printf("byte 0x%x/0d%u %s (%zu)\n",
                byte,
@@ -508,12 +507,52 @@ static Result tst_with_sysex_many_random(void * env) {
   return r;
 }
 
+static Result tst_start_from_random_bytes(void * env) {
+  Result    r       = PASS;
+  Fixture * fixture = (Fixture *)env;
+  EXPECT_NE(&r, NULL, fixture);
+  if(HAS_FAILED(&r)) return r;
+
+  MIDI_Encoder * encoder = (MIDI_Encoder *)&fixture->encoder;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)&fixture->decoder;
+
+  const size_t num_bytes = 100000;
+
+  DAR_DArray msgs = {0};
+  EXPECT_OK(&r, DAR_create(&msgs, sizeof(MIDI_Message)));
+
+  for(size_t i = 0; i < num_bytes; i++) {
+    uint8_t b = get_rand_u32(0, UINT8_MAX);
+
+    EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, b));
+
+    while(MIDI_decoder_has_output(decoder)) {
+      MIDI_Message msg = MIDI_decoder_pop_msg(decoder);
+      EXPECT_OK(&r, DAR_push_back(&msgs, &msg));
+    }
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  // this is necessary in case the decoder is in a sysex sequence state, then it would generate an extra sysex stop
+  // on the next pushed byte, which would not really cause issues in the real world, but breaks the count of the test
+  // below.
+  EXPECT_OK(&r, MIDI_decoder_reset(decoder));
+
+  expect_same_messages_across_roundtrip_with_all_prio_settings(&r, __func__, __LINE__, encoder, decoder, &msgs, false);
+
+  EXPECT_OK(&r, DAR_destroy(&msgs));
+
+  return r;
+}
+
 int main(void) {
   TestWithFixture tests_with_fixture[] = {
       tst_fixture,
       tst_basic,
       tst_basic_many_random,
       tst_with_sysex_many_random,
+      tst_start_from_random_bytes,
   };
 
   return (run_tests_with_fixture(tests_with_fixture,

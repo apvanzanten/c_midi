@@ -207,6 +207,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
         decoder->state = ST_NOTE_ON_WITH_VALID_NOTE;
       } else {
         // expected data byte, try again from init state
+        decoder->current_channel = 0;
+        decoder->current_note    = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT;
       }
@@ -224,6 +227,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_RUNNING_NOTE_ON; // successfully parsed note, we may get another
       } else {
+        decoder->current_channel = 0;
+        decoder->current_note    = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -239,6 +245,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_NOTE_OFF_WITH_VALID_NOTE;
       } else {
+        decoder->current_channel = 0;
+        decoder->current_note    = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -257,6 +266,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_RUNNING_NOTE_OFF; // successfully parsed note, we may get another
       } else {
+        decoder->current_channel = 0;
+        decoder->current_note    = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -292,6 +304,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_RUNNING_CONTROL_CHANGE;
       } else {
+        decoder->current_channel = 0;
+        decoder->current_control = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -310,6 +325,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         // stay in same running state
       } else {
+        decoder->current_channel = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -324,6 +341,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_PITCH_BEND_LSB_RECEIVED;
       } else {
+        decoder->current_channel = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -343,6 +362,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_RUNNING_PITCH_BEND; // pitch bend parsed OK, maybe we get another
       } else {
+        decoder->current_channel = 0;
+        decoder->pitch_bend_lsb  = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -360,6 +382,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         // stay in same running state
       } else {
+        decoder->current_channel = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -374,6 +398,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_AFTERTOUCH_POLY_WITH_VALID_NOTE;
       } else {
+        decoder->current_channel = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -393,6 +419,9 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_RUNNING_AFTERTOUCH_POLY; // parsed OK, maybe we get another
       } else {
+        decoder->current_channel = 0;
+        decoder->current_note    = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");
@@ -444,6 +473,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
         decoder->state = ST_INIT; // song position pointer parsed OK
       } else {
+        decoder->song_position_lsb = 0;
+
         try_byte_again = true;
         decoder->state = ST_INIT; // byte not parsable, try again from init state
         LOG(decoder, byte, "byte unparsable from state");

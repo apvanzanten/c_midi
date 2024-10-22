@@ -802,6 +802,28 @@ static Result tst_multiple_msgs(void * env) {
   return r;
 }
 
+static Result tst_random_byte_input(void * env) {
+  Result         r       = PASS;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)env;
+
+  printf("start test %s\n", __func__);
+
+  // push many random bytes. decoder should never return any error
+
+  const size_t num_bytes = 100000;
+
+  for(size_t i = 0; i < num_bytes; i++) {
+    const uint8_t byte = get_rand_u32(0, UINT8_MAX);
+
+    EXPECT_OK(&r, MIDI_decoder_push_byte(decoder, byte));
+
+    while(MIDI_decoder_has_output(decoder)) { MIDI_decoder_pop_msg(decoder); }
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main(void) {
   TestWithFixture tests_with_fixture[] = {
       tst_fixture,
@@ -819,6 +841,7 @@ int main(void) {
       tst_sysex_sequence_with_realtime_interruptions,
       tst_sysex_sequence_with_length_overflow,
       tst_multiple_msgs,
+      tst_random_byte_input,
   };
 
   return (run_tests_with_fixture(tests_with_fixture,
