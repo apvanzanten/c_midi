@@ -238,8 +238,8 @@ STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message
         break;
       }
       case MIDI_MSG_TYPE_SYSEX_STOP: {
-        const uint16_t expected_length_value  = (encoder->sysex_sequence_length & 0x7ff);
-        const bool     expected_overflow_flag = (encoder->sysex_sequence_length > 0x7ff);
+        const uint16_t expected_length_value  = (encoder->sysex_sequence_length & 0x7fff);
+        const bool     expected_overflow_flag = (encoder->sysex_sequence_length > 0x7fff);
 
         if((msg.data.sysex_stop.sequence_length != expected_length_value) ||
            (msg.data.sysex_stop.is_length_overflowed != expected_overflow_flag)) {
