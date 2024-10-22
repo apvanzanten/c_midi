@@ -63,6 +63,7 @@ typedef struct MIDI_Decoder {
 } MIDI_Decoder;
 
 STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder);
+STAT_Val MIDI_decoder_reset(MIDI_Decoder * restrict decoder);
 STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode);
 
 STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte);

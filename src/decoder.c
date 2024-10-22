@@ -90,6 +90,7 @@ static bool                  is_single_byte_type(uint8_t status_byte);
 static bool                  is_real_time(uint8_t status_byte);
 static bool                  is_data_byte(uint8_t byte);
 static bool                  is_system_reset(uint8_t byte);
+static bool                  is_prioritizable(uint8_t byte);
 
 static int16_t  make_pitch_bend_value(uint8_t lsb, uint8_t high_byte);
 static uint16_t make_song_position_pointer_value(uint8_t lsb, uint8_t high_byte);
@@ -109,6 +110,23 @@ STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder) {
   return OK;
 }
 
+STAT_Val MIDI_decoder_reset(MIDI_Decoder * restrict decoder) {
+  if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
+
+  // remember only settings, reset everything else
+  MIDI_DecoderPriorityMode prio_mode = decoder->prio_mode;
+
+  buff_init(&(decoder->msg_buffer));
+  buff_init(&(decoder->prio_msg_buffer));
+
+  *decoder = (MIDI_Decoder){0};
+
+  decoder->prio_mode = prio_mode;
+  decoder->state     = ST_INIT;
+
+  return OK;
+}
+
 STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
 
@@ -124,7 +142,7 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   LOG(decoder, byte, "func entry");
 
   if(is_real_time(byte)) {
-    if(MIDI_decoder_is_in_realtime_prio_mode(decoder)) {
+    if(MIDI_decoder_is_in_realtime_prio_mode(decoder) && is_prioritizable(byte)) {
       MIDI_IMPL_decoder_buff_push(&(decoder->prio_msg_buffer), (MIDI_Message){.type = get_type(byte)});
     } else {
       MIDI_IMPL_decoder_buff_push(&(decoder->msg_buffer), (MIDI_Message){.type = get_type(byte)});
@@ -202,6 +220,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
                                                    .channel      = decoder->current_channel,
                                                    .data.note_on = {.note = decoder->current_note, .velocity = byte}});
 
+        decoder->current_note = 0;
+
         decoder->state = ST_RUNNING_NOTE_ON; // successfully parsed note, we may get another
       } else {
         try_byte_again = true;
@@ -232,6 +252,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
                                     (MIDI_Message){.type          = MIDI_MSG_TYPE_NOTE_OFF,
                                                    .channel       = decoder->current_channel,
                                                    .data.note_off = {.note = decoder->current_note, .velocity = byte}});
+
+        decoder->current_note = 0;
 
         decoder->state = ST_RUNNING_NOTE_OFF; // successfully parsed note, we may get another
       } else {
@@ -265,6 +287,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
 
                                                    .data.control_change = {.control = decoder->current_control,
                                                                            .value   = byte}});
+
+        decoder->current_control = 0;
 
         decoder->state = ST_RUNNING_CONTROL_CHANGE;
       } else {
@@ -315,6 +339,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
                                                    .data.pitch_bend = {
                                                        .value = make_pitch_bend_value(decoder->pitch_bend_lsb, byte)}});
 
+        decoder->pitch_bend_lsb = 0;
+
         decoder->state = ST_RUNNING_PITCH_BEND; // pitch bend parsed OK, maybe we get another
       } else {
         try_byte_again = true;
@@ -362,6 +388,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
                                                    .channel              = decoder->current_channel,
                                                    .data.aftertouch_poly = {.note  = decoder->current_note,
                                                                             .value = byte}});
+
+        decoder->current_note = 0;
 
         decoder->state = ST_RUNNING_AFTERTOUCH_POLY; // parsed OK, maybe we get another
       } else {
@@ -411,6 +439,8 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
                                                        .value =
                                                            make_song_position_pointer_value(decoder->song_position_lsb,
                                                                                             byte)}});
+
+        decoder->song_position_lsb = 0;
 
         decoder->state = ST_INIT; // song position pointer parsed OK
       } else {
@@ -505,6 +535,8 @@ static bool is_real_time(uint8_t status_byte) {
 }
 
 static bool is_system_reset(uint8_t byte) { return is_of_type(byte, MIDI_MSG_TYPE_SYSTEM_RESET); }
+
+static bool is_prioritizable(uint8_t byte) { return MIDI_is_prioritizable_type(get_type(byte)); }
 
 static bool is_data_byte(uint8_t byte) { return !is_status(byte); }
 

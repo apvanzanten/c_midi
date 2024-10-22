@@ -38,13 +38,29 @@ STAT_Val MIDI_encoder_init(MIDI_Encoder * restrict encoder) {
   *encoder = (MIDI_Encoder){0};
 
   buff_init(&encoder->out_buffer);
+  buff_init(&encoder->prio_out_buffer);
 
-  encoder->state     = ST_INIT;
-  encoder->prio_mode = MIDI_ENCODER_PRIO_MODE_FIFO;
+  encoder->state        = ST_INIT;
+  encoder->prio_mode    = MIDI_ENCODER_PRIO_MODE_FIFO;
+  encoder->current_type = MIDI_MSG_TYPE_NON_STD_NONE;
 
-  encoder->current_channel       = 0;
-  encoder->current_type          = MIDI_MSG_TYPE_NON_STD_NONE;
-  encoder->sysex_sequence_length = 0;
+  return OK;
+}
+
+STAT_Val MIDI_encoder_reset(MIDI_Encoder * restrict encoder) {
+  if(encoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "encoder pointer is NULL");
+
+  // remember only settings, reset everything else
+  MIDI_EncoderPriorityMode prio_mode = encoder->prio_mode;
+
+  buff_init(&(encoder->out_buffer));
+  buff_init(&(encoder->prio_out_buffer));
+
+  *encoder = (MIDI_Encoder){0};
+
+  encoder->state        = ST_INIT;
+  encoder->current_type = MIDI_MSG_TYPE_NON_STD_NONE;
+  encoder->prio_mode    = prio_mode;
 
   return OK;
 }
@@ -94,16 +110,17 @@ STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message
 
     const uint8_t byte = get_system_status_byte(msg.type);
 
-    if(encoder->prio_mode == MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST) {
-      MIDI_IMPL_encoder_buff_push(&encoder->realtime_out_buffer, byte);
+    if((encoder->prio_mode == MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST) && MIDI_is_prioritizable_msg(msg)) {
+      MIDI_IMPL_encoder_buff_push(&encoder->prio_out_buffer, byte);
     } else {
       MIDI_IMPL_encoder_buff_push(&encoder->out_buffer, byte);
     }
 
     if(msg.type == MIDI_MSG_TYPE_SYSTEM_RESET) {
-      encoder->state           = ST_INIT;
-      encoder->current_channel = 0;
-      encoder->current_type    = MIDI_MSG_TYPE_NON_STD_NONE;
+      encoder->state                 = ST_INIT;
+      encoder->current_channel       = 0;
+      encoder->current_type          = MIDI_MSG_TYPE_NON_STD_NONE;
+      encoder->sysex_sequence_length = 0;
     }
 
     msg_finished = true;

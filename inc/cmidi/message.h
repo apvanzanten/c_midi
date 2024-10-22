@@ -67,6 +67,7 @@ static inline const char * MIDI_message_type_to_str(MIDI_MessageType t);
 static inline bool         MIDI_is_channel_type(MIDI_MessageType type);
 static inline bool         MIDI_is_system_type(MIDI_MessageType type);
 static inline bool         MIDI_is_real_time_type(MIDI_MessageType type);
+static inline bool         MIDI_is_prioritizable_type(MIDI_MessageType type);
 static inline bool         MIDI_is_single_byte_type(MIDI_MessageType type);
 static inline bool         MIDI_is_non_standard_type(MIDI_MessageType type);
 
@@ -170,6 +171,7 @@ _Static_assert(sizeof(MIDI_Message) == 4, "MIDI_Message does not fit in desired 
 static inline bool MIDI_is_channel_msg(MIDI_Message msg);
 static inline bool MIDI_is_system_msg(MIDI_Message msg);
 static inline bool MIDI_is_real_time_msg(MIDI_Message msg);
+static inline bool MIDI_is_prioritizable_msg(MIDI_Message msg);
 static inline bool MIDI_is_single_byte_msg(MIDI_Message msg);
 static inline bool MIDI_is_non_standard_msg(MIDI_Message msg);
 
@@ -287,6 +289,19 @@ static inline bool MIDI_is_real_time_type(MIDI_MessageType type) {
   }
 }
 
+static inline bool MIDI_is_prioritizable_type(MIDI_MessageType type) {
+  // all real time message types, except for reset
+  // Due to its impact on system state, it is critical that messages that occur before/after a RESET remain that way
+  switch(type) {
+  case MIDI_MSG_TYPE_TIMING_CLOCK: return true;
+  case MIDI_MSG_TYPE_START: return true;
+  case MIDI_MSG_TYPE_CONTINUE: return true;
+  case MIDI_MSG_TYPE_STOP: return true;
+  case MIDI_MSG_TYPE_ACTIVE_SENSING: return true;
+  default: return false;
+  }
+}
+
 static inline bool MIDI_is_single_byte_type(MIDI_MessageType type) {
   if(MIDI_is_real_time_type(type)) return true;
   switch(type) {
@@ -299,6 +314,8 @@ static inline bool MIDI_is_single_byte_type(MIDI_MessageType type) {
 static inline bool MIDI_is_channel_msg(MIDI_Message msg) { return MIDI_is_channel_type(msg.type); }
 static inline bool MIDI_is_system_msg(MIDI_Message msg) { return MIDI_is_system_type(msg.type); }
 static inline bool MIDI_is_real_time_msg(MIDI_Message msg) { return MIDI_is_real_time_type(msg.type); }
+
+static inline bool MIDI_is_prioritizable_msg(MIDI_Message msg) { return MIDI_is_prioritizable_type(msg.type); }
 static inline bool MIDI_is_single_byte_msg(MIDI_Message msg) { return MIDI_is_single_byte_type(msg.type); }
 
 static inline const char * MIDI_quarter_frame_type_to_str(MIDI_QuarterFrameType type) {

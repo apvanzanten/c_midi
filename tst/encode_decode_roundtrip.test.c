@@ -44,12 +44,13 @@ typedef struct Fixture {
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
-static void expect_same_messages_across_roundtrip(Result *       r_ptr,
-                                                  const char *   tst_name,
-                                                  MIDI_Encoder * encoder,
-                                                  MIDI_Decoder * decoder,
-                                                  DAR_DArray *   input_msgs,
-                                                  bool           is_verbose) {
+static void expect_same_messages_across_roundtrip(Result *           r_ptr,
+                                                  const char *       tst_name,
+                                                  int                tst_line,
+                                                  MIDI_Encoder *     encoder,
+                                                  MIDI_Decoder *     decoder,
+                                                  const DAR_DArray * input_msgs,
+                                                  bool               is_verbose) {
   DAR_DArray bytes = {0};
   EXPECT_OK(r_ptr, DAR_create(&bytes, sizeof(uint8_t)));
 
@@ -58,7 +59,7 @@ static void expect_same_messages_across_roundtrip(Result *       r_ptr,
 
 #define REPORT_AND_RETURN()                                                                                            \
   do {                                                                                                                 \
-    printf("%s fail\n", tst_name);                                                                                     \
+    printf("%s:%d fail\n", tst_name, tst_line);                                                                        \
     DAR_destroy(&bytes);                                                                                               \
     DAR_destroy(&output);                                                                                              \
     return;                                                                                                            \
@@ -93,8 +94,8 @@ static void expect_same_messages_across_roundtrip(Result *       r_ptr,
         printf("byte 0x%x/0d%u %s (%zu)\n",
                byte,
                byte,
-               (0x80 & byte) ? (((byte & 0x7f) > 0x60) ? MIDI_message_type_to_str(byte & 0x7f)
-                                                       : MIDI_message_type_to_str(byte & 0x70))
+               (0x80 & byte) ? (((byte & 0x7f) >= 0x70) ? MIDI_message_type_to_str(byte & 0x7f)
+                                                        : MIDI_message_type_to_str(byte & 0x70))
                              : "",
                bytes.size);
       }
@@ -131,52 +132,141 @@ static void expect_same_messages_across_roundtrip(Result *       r_ptr,
 
   if(HAS_FAILED(r_ptr)) REPORT_AND_RETURN();
 
-  // check presence and order of realtime and non-realtime messages
+  // check presence and order of prioritizable and non-prioritizable messages
   {
-    size_t last_non_rt_idx = 0;
-    size_t last_rt_idx     = 0;
-    size_t non_rt_count    = 0;
-    size_t rt_count        = 0;
+    size_t last_non_prio_msg_idx = 0;
+    size_t last_prio_msg_idx     = 0;
+    size_t non_prio_msg_count    = 0;
+    size_t prio_msg_count        = 0;
 
     for(size_t in_idx = 0; in_idx < input_msgs->size; in_idx++) {
       const MIDI_Message in_msg = *(MIDI_Message *)DAR_get(input_msgs, in_idx);
 
-      if(is_verbose) {
-        char str[64] = "";
-        MIDI_message_to_str_buffer_short(str, 64, in_msg);
-        printf("%s (#%zu): ", str, in_idx);
-      }
+      char in_msg_str[64] = "";
+      MIDI_message_to_str_buffer_short(in_msg_str, 64, in_msg);
 
-      if(MIDI_is_real_time_msg(in_msg)) {
-        for(size_t out_idx = (in_idx == 0) ? 0 : last_rt_idx + 1; out_idx < output.size; out_idx++) {
-          const MIDI_Message msg = *((MIDI_Message *)DAR_get(&output, out_idx));
+      if(is_verbose) printf("%s (#%zu): ", in_msg_str, in_idx);
 
-          if(MIDI_message_equals(msg, in_msg)) {
-            last_rt_idx = out_idx;
-            rt_count++;
-            if(is_verbose) printf("rt #%zu at %zu", rt_count, out_idx);
+      if(MIDI_is_prioritizable_msg(in_msg)) {
+        for(size_t out_idx = (prio_msg_count == 0) ? 0 : last_prio_msg_idx + 1; out_idx < output.size; out_idx++) {
+          const MIDI_Message out_msg = *((MIDI_Message *)DAR_get(&output, out_idx));
+
+          char out_msg_str[64] = "";
+          MIDI_message_to_str_buffer_short(out_msg_str, 64, out_msg);
+
+          if(MIDI_is_prioritizable_msg(out_msg)) {
+            EXPECT_TRUE(r_ptr, MIDI_message_equals(out_msg, in_msg));
+
+            if(HAS_FAILED(r_ptr)) {
+              printf("found prioritizable message other than expected at index %zu. expected: %s, actual: %s\n",
+                     out_idx,
+                     in_msg_str,
+                     out_msg_str);
+              REPORT_AND_RETURN();
+            }
+
+            last_prio_msg_idx = out_idx;
+            prio_msg_count++;
+            if(is_verbose) printf("prio #%zu at %zu", prio_msg_count, out_idx);
             break;
           }
         }
       } else {
-        for(size_t out_idx = (in_idx == 0) ? 0 : last_non_rt_idx + 1; out_idx < output.size; out_idx++) {
-          const MIDI_Message msg = *((MIDI_Message *)DAR_get(&output, out_idx));
+        for(size_t out_idx = (non_prio_msg_count == 0) ? 0 : last_non_prio_msg_idx + 1; out_idx < output.size;
+            out_idx++) {
+          const MIDI_Message out_msg = *((MIDI_Message *)DAR_get(&output, out_idx));
 
-          if(MIDI_message_equals(msg, in_msg)) {
-            last_non_rt_idx = out_idx;
-            non_rt_count++;
-            if(is_verbose) printf("non-rt #%zu at %zu", non_rt_count, out_idx);
+          char out_msg_str[64] = "";
+          MIDI_message_to_str_buffer_short(out_msg_str, 64, out_msg);
+
+          if(!MIDI_is_prioritizable_msg(out_msg)) {
+            EXPECT_TRUE(r_ptr, MIDI_message_equals(out_msg, in_msg));
+
+            if(HAS_FAILED(r_ptr)) {
+              printf("found non-prioritizable message other than expected. expected: %s, actual: %s\n",
+                     in_msg_str,
+                     out_msg_str);
+              REPORT_AND_RETURN();
+            }
+
+            last_non_prio_msg_idx = out_idx;
+            non_prio_msg_count++;
+            if(is_verbose) printf("non-prio #%zu at %zu", non_prio_msg_count, out_idx);
             break;
           }
         }
       }
       if(is_verbose) printf("\n");
     }
-    EXPECT_EQ(r_ptr, input_msgs->size, non_rt_count + rt_count);
+    EXPECT_EQ(r_ptr, input_msgs->size, non_prio_msg_count + prio_msg_count);
+    if(HAS_FAILED(r_ptr)) REPORT_AND_RETURN();
   }
 
   EXPECT_OK(r_ptr, DAR_destroy(&bytes));
   EXPECT_OK(r_ptr, DAR_destroy(&output));
+}
+
+static void expect_same_messages_across_roundtrip_with_all_prio_settings(Result *           r_ptr,
+                                                                         const char *       tst_name,
+                                                                         int                tst_line,
+                                                                         MIDI_Encoder *     encoder,
+                                                                         MIDI_Decoder *     decoder,
+                                                                         const DAR_DArray * input_msgs,
+                                                                         bool               is_verbose) {
+
+  if(is_verbose) printf("starting roundtrip for %s:%d with default prio settings\n", tst_name, tst_line);
+  expect_same_messages_across_roundtrip(r_ptr, tst_name, tst_line, encoder, decoder, input_msgs, is_verbose);
+
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
+  EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready_to_receive(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready_to_receive(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_reset(encoder));
+  EXPECT_OK(r_ptr, MIDI_decoder_reset(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST));
+  if(HAS_FAILED(r_ptr)) return;
+
+  if(is_verbose) printf("starting roundtrip for %s:%d with encoder set to rt priority\n", tst_name, tst_line);
+  expect_same_messages_across_roundtrip(r_ptr, tst_name, tst_line, encoder, decoder, input_msgs, is_verbose);
+
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
+  EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready_to_receive(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready_to_receive(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_reset(encoder));
+  EXPECT_OK(r_ptr, MIDI_decoder_reset(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_decoder_set_prio_mode(decoder, MIDI_DECODER_PRIO_MODE_REALTIME_FIRST));
+  if(HAS_FAILED(r_ptr)) return;
+
+  if(is_verbose)
+    printf("starting roundtrip for %s:%d with decoder and encoder set to rt priority\n", tst_name, tst_line);
+  expect_same_messages_across_roundtrip(r_ptr, tst_name, tst_line, encoder, decoder, input_msgs, is_verbose);
+
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
+  EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready_to_receive(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready_to_receive(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_reset(encoder));
+  EXPECT_OK(r_ptr, MIDI_decoder_reset(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_FIFO));
+  if(HAS_FAILED(r_ptr)) return;
+
+  if(is_verbose) printf("starting roundtrip for %s:%d with decoder set to rt priority\n", tst_name, tst_line);
+  expect_same_messages_across_roundtrip(r_ptr, tst_name, tst_line, encoder, decoder, input_msgs, is_verbose);
+
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
+  EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready_to_receive(encoder));
+  EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready_to_receive(decoder));
+
+  EXPECT_OK(r_ptr, MIDI_encoder_reset(encoder));
+  EXPECT_OK(r_ptr, MIDI_decoder_reset(decoder));
 }
 
 static Result tst_fixture(void * env) {
@@ -302,14 +392,20 @@ static Result tst_basic(void * env) {
                                             .element_size = sizeof(msgs[0]),
                                             .len          = (sizeof(msgs) / sizeof(msgs[0]))}));
 
-  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr, false);
+  expect_same_messages_across_roundtrip_with_all_prio_settings(&r,
+                                                               __func__,
+                                                               __LINE__,
+                                                               encoder,
+                                                               decoder,
+                                                               &input_arr,
+                                                               false);
 
   EXPECT_OK(&r, DAR_destroy(&input_arr));
 
   return r;
 }
 
-static Result tst_basic_roundtrip_many_random(void * env) {
+static Result tst_basic_many_random(void * env) {
   Result    r       = PASS;
   Fixture * fixture = (Fixture *)env;
   EXPECT_NE(&r, NULL, fixture);
@@ -330,7 +426,82 @@ static Result tst_basic_roundtrip_many_random(void * env) {
     if(HAS_FAILED(&r)) return r;
   }
 
-  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr, false);
+  expect_same_messages_across_roundtrip_with_all_prio_settings(&r,
+                                                               __func__,
+                                                               __LINE__,
+                                                               encoder,
+                                                               decoder,
+                                                               &input_arr,
+                                                               false);
+
+  EXPECT_OK(&r, DAR_destroy(&input_arr));
+
+  return r;
+}
+
+static Result tst_with_sysex_many_random(void * env) {
+  Result    r       = PASS;
+  Fixture * fixture = (Fixture *)env;
+  EXPECT_NE(&r, NULL, fixture);
+  if(HAS_FAILED(&r)) return r;
+
+  MIDI_Encoder * encoder = (MIDI_Encoder *)&fixture->encoder;
+  MIDI_Decoder * decoder = (MIDI_Decoder *)&fixture->decoder;
+
+  const size_t num_messages = 10000;
+
+  DAR_DArray input_arr = {0};
+  EXPECT_OK(&r, DAR_create(&input_arr, sizeof(MIDI_Message)));
+  EXPECT_OK(&r, DAR_reserve(&input_arr, num_messages));
+
+  bool   in_sysex_sequence     = false;
+  size_t sysex_sequence_length = 0;
+
+  for(size_t i = 0; i < num_messages; i++) {
+    const uint32_t dir = get_rand_u32(1, 25);
+
+    if(in_sysex_sequence) {
+      if(dir == 1) {
+        const MIDI_Message msg = {.type            = MIDI_MSG_TYPE_SYSEX_STOP,
+                                  .data.sysex_stop = {.sequence_length      = sysex_sequence_length & 0x7fff,
+                                                      .is_length_overflowed = (sysex_sequence_length > 0x7fff)}};
+        EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
+        in_sysex_sequence     = false;
+        sysex_sequence_length = 0;
+
+      } else if(dir <= 5) {
+        const MIDI_Message msg = get_rand_basic_realtime_message();
+        EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
+
+      } else {
+        const MIDI_Message msg = {.type            = MIDI_MSG_TYPE_NON_STD_SYSEX_BYTE,
+                                  .data.sysex_byte = {.byte            = get_rand_u7(),
+                                                      .sequence_number = sysex_sequence_length & 0x1ff}};
+        EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
+        sysex_sequence_length++;
+      }
+    } else {
+      if(dir == 1) {
+        const MIDI_Message msg = {.type = MIDI_MSG_TYPE_SYSEX_START};
+        EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
+        in_sysex_sequence     = true;
+        sysex_sequence_length = 0;
+
+      } else {
+        const MIDI_Message msg = get_rand_basic_message();
+        EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
+      }
+    }
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  expect_same_messages_across_roundtrip_with_all_prio_settings(&r,
+                                                               __func__,
+                                                               __LINE__,
+                                                               encoder,
+                                                               decoder,
+                                                               &input_arr,
+                                                               false);
 
   EXPECT_OK(&r, DAR_destroy(&input_arr));
 
@@ -341,7 +512,8 @@ int main(void) {
   TestWithFixture tests_with_fixture[] = {
       tst_fixture,
       tst_basic,
-      tst_basic_roundtrip_many_random,
+      tst_basic_many_random,
+      tst_with_sysex_many_random,
   };
 
   return (run_tests_with_fixture(tests_with_fixture,
