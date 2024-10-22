@@ -96,7 +96,7 @@ static uint16_t make_song_position_pointer_value(uint8_t lsb, uint8_t high_byte)
 
 static void buff_init(MIDI_MsgBuffer * restrict buffer) { *buffer = (MIDI_MsgBuffer){0}; }
 
-STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_DecoderPriorityMode prio_mode) {
+STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
 
   *decoder = (MIDI_Decoder){0};
@@ -104,7 +104,7 @@ STAT_Val MIDI_decoder_init(MIDI_Decoder * restrict decoder, MIDI_DecoderPriority
   buff_init(&(decoder->prio_msg_buffer));
 
   decoder->state     = ST_INIT;
-  decoder->prio_mode = prio_mode;
+  decoder->prio_mode = MIDI_DECODER_PRIO_MODE_FIFO;
 
   return OK;
 }

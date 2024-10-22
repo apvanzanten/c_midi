@@ -367,7 +367,7 @@ static Result setup(void ** env_p) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, OK, MIDI_encoder_init(&(*fixture)->encoder));
-  EXPECT_EQ(&r, OK, MIDI_decoder_init(&(*fixture)->decoder, MIDI_DECODER_PRIO_MODE_FIFO));
+  EXPECT_EQ(&r, OK, MIDI_decoder_init(&(*fixture)->decoder));
 
   return r;
 }

@@ -838,13 +838,13 @@ static Result setup(void ** env_p) {
   // use both time and clock so we get a different seed even if we call this many times per second
   setup_rand();
 
-  MIDI_Decoder ** pars_p = (MIDI_Decoder **)env_p;
+  MIDI_Decoder ** decoder = (MIDI_Decoder **)env_p;
 
-  *pars_p = malloc(sizeof(MIDI_Decoder));
-  EXPECT_NE(&r, NULL, *pars_p);
+  *decoder = malloc(sizeof(MIDI_Decoder));
+  EXPECT_NE(&r, NULL, *decoder);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, MIDI_decoder_init(*pars_p, MIDI_DECODER_PRIO_MODE_FIFO));
+  EXPECT_EQ(&r, OK, MIDI_decoder_init(*decoder));
 
   return r;
 }
