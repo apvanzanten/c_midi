@@ -82,11 +82,14 @@ target_link_libraries(midi_encoder midi_note midi_message log)
 if (DEBUG) # For some reason cmake won't rebuild on test changes if this if statement is here :(
     enable_testing()
 
+    add_library(midi_test_common ${TST_DIR}/test_common.c)
+    target_link_libraries(midi_test_common midi_note midi_message)
+
     function(AddTest TEST_NAME TEST_SOURCE #[[test dependencies...]])
         add_executable(${TEST_NAME} ${TST_DIR}/${TEST_SOURCE})
 
         target_include_directories(${TEST_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${SRC_DIR})
-        target_link_libraries(${TEST_NAME} test_utils ${ARGN})
+        target_link_libraries(${TEST_NAME} test_utils midi_test_common ${ARGN})
 
         add_test(${TEST_NAME} ${TEST_NAME})
     endfunction()

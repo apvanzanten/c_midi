@@ -27,7 +27,8 @@
 
 #include <cfac/stat.h>
 
-#define MIDI_ENCODER_OUT_BUFFER_CAPACITY 32
+#define MIDI_ENCODER_OUT_BUFFER_CAPACITY          32
+#define MIDI_ENCODER_REALTIME_OUT_BUFFER_CAPACITY 8
 
 #define MIDI_ENCODER_MAX_GENERATED_BYTES_PER_MESSAGE 3
 
@@ -38,12 +39,18 @@ typedef struct MIDI_ByteBuffer {
   bool    is_full;
 } MIDI_ByteBuffer;
 
-// TODO rt priority
+typedef enum MIDI_EncoderPriorityMode {
+  MIDI_ENCODER_PRIO_MODE_FIFO,
+  MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST,
+} MIDI_EncoderPriorityMode;
 
 typedef struct MIDI_Encoder {
   uint8_t state;
 
+  MIDI_EncoderPriorityMode prio_mode;
+
   MIDI_ByteBuffer out_buffer;
+  MIDI_ByteBuffer realtime_out_buffer;
 
   MIDI_MessageType current_type;
   MIDI_Channel     current_channel;
@@ -52,6 +59,7 @@ typedef struct MIDI_Encoder {
 } MIDI_Encoder;
 
 STAT_Val MIDI_encoder_init(MIDI_Encoder * restrict encoder);
+STAT_Val MIDI_encoder_set_prio_mode(MIDI_Encoder * restrict encoder, MIDI_EncoderPriorityMode prio);
 STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message message);
 
 static inline bool    MIDI_encoder_has_output(const MIDI_Encoder * restrict encoder);
@@ -69,22 +77,31 @@ static inline uint8_t MIDI_IMPL_encoder_buff_peek(const MIDI_ByteBuffer * restri
 static inline void    MIDI_IMPL_encoder_buff_clear(MIDI_ByteBuffer * restrict buffer);
 
 static inline bool MIDI_encoder_has_output(const MIDI_Encoder * restrict encoder) {
-  return (encoder != NULL) && !MIDI_IMPL_encoder_buff_is_empty(&encoder->out_buffer);
+  return (encoder != NULL) && (!MIDI_IMPL_encoder_buff_is_empty(&encoder->out_buffer) ||
+                               !MIDI_IMPL_encoder_buff_is_empty(&encoder->realtime_out_buffer));
 }
 
 static inline uint8_t MIDI_encoder_peek_byte(const MIDI_Encoder * restrict encoder) {
   if(encoder == NULL) return 0;
-  return MIDI_IMPL_encoder_buff_peek(&(encoder->out_buffer));
+  if(!MIDI_IMPL_encoder_buff_is_empty(&encoder->realtime_out_buffer)) {
+    return MIDI_IMPL_encoder_buff_peek(&encoder->realtime_out_buffer);
+  }
+  return MIDI_IMPL_encoder_buff_peek(&encoder->out_buffer);
 }
 
 static inline uint8_t MIDI_encoder_pop_byte(MIDI_Encoder * restrict encoder) {
   if(encoder == NULL) return 0;
-  return MIDI_IMPL_encoder_buff_pop(&(encoder->out_buffer));
+  if(!MIDI_IMPL_encoder_buff_is_empty(&encoder->realtime_out_buffer)) {
+    return MIDI_IMPL_encoder_buff_pop(&encoder->realtime_out_buffer);
+  }
+  return MIDI_IMPL_encoder_buff_pop(&encoder->out_buffer);
 }
 
 static inline bool MIDI_encoder_is_ready(const MIDI_Encoder * restrict encoder) {
-  return (encoder != NULL) && (MIDI_IMPL_encoder_buff_get_space_available(&encoder->out_buffer) >=
-                               MIDI_ENCODER_MAX_GENERATED_BYTES_PER_MESSAGE);
+  return (encoder != NULL) &&
+         (MIDI_IMPL_encoder_buff_get_space_available(&encoder->out_buffer) >=
+          MIDI_ENCODER_MAX_GENERATED_BYTES_PER_MESSAGE) &&
+         !MIDI_IMPL_encoder_buff_is_full(&encoder->realtime_out_buffer);
 }
 
 static inline bool MIDI_IMPL_encoder_buff_is_empty(const MIDI_ByteBuffer * restrict buffer) {

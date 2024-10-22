@@ -29,6 +29,8 @@
 
 #define OK STAT_OK
 
+#include "test_common.h"
+
 #include "encoder.h"
 
 static Result setup(void ** env_p);
@@ -128,11 +130,6 @@ static Result tst_note_on_off(void * env) {
                             sizeof(expect_output) / sizeof(expect_output[0]));
 
   return r;
-}
-
-static int16_t make_pitch_bend_value(uint8_t lsb, uint8_t msb) {
-  const int16_t mid = 0x40 << 7;
-  return (((int16_t)(msb) << 7) | (int16_t)lsb) - mid;
 }
 
 static Result tst_channel_messages(void * env) {
@@ -316,10 +313,6 @@ static Result tst_channel_messages_with_realtime_interruptions(void * env) {
   return r;
 }
 
-static uint16_t make_song_position_pointer_value(uint8_t lsb, uint8_t msb) {
-  return ((msb & 0x7f) << 7) | (lsb & 0x7f);
-}
-
 static Result tst_system_messages(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
@@ -453,6 +446,75 @@ static Result tst_sysex_sequence_with_overflow(void * env) {
   return r;
 }
 
+static Result tst_realtime_priority_basic(void * env) {
+  Result         r       = PASS;
+  MIDI_Encoder * encoder = (MIDI_Encoder *)env;
+
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+
+  EXPECT_OK(&r, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST));
+
+  // send non-realtime message first, but realtime message should come out first
+  EXPECT_OK(&r,
+            MIDI_encoder_push_message(encoder,
+                                      (MIDI_Message){.type = MIDI_MSG_TYPE_SONG_SELECT, .data.song_select.value = 3}));
+  EXPECT_OK(&r, MIDI_encoder_push_message(encoder, (MIDI_Message){.type = MIDI_MSG_TYPE_TIMING_CLOCK}));
+
+  EXPECT_EQ(&r, 0x80 | MIDI_MSG_TYPE_TIMING_CLOCK, MIDI_encoder_pop_byte(encoder));
+  EXPECT_EQ(&r, 0x80 | MIDI_MSG_TYPE_SONG_SELECT, MIDI_encoder_pop_byte(encoder));
+  EXPECT_EQ(&r, 3, MIDI_encoder_pop_byte(encoder));
+
+  return r;
+}
+
+static Result tst_realtime_priority_multi(void * env) {
+  Result         r       = PASS;
+  MIDI_Encoder * encoder = (MIDI_Encoder *)env;
+
+  EXPECT_OK(&r, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST));
+
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+
+  // fill up buffer with non-realtime messages, pop until ready, then push some realtime messages
+  // they should all come in before remaining non-realtime messages
+
+  printf("%s", __func__);
+
+  while(MIDI_encoder_is_ready(encoder)) {
+    EXPECT_OK(&r, MIDI_encoder_push_message(encoder, get_rand_basic_non_realtime_message()));
+    putc('.', stdout);
+  }
+  putc(' ', stdout);
+  while(!MIDI_encoder_is_ready(encoder)) {
+    MIDI_encoder_pop_byte(encoder);
+    putc('.', stdout);
+  }
+  putc(' ', stdout);
+  while(MIDI_encoder_has_output(encoder)) {
+    EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+
+    const MIDI_Message msg = get_rand_basic_realtime_message();
+
+    EXPECT_OK(&r, MIDI_encoder_push_message(encoder, msg));
+
+    EXPECT_TRUE(&r, MIDI_encoder_has_output(encoder));
+
+    const uint8_t rt_out     = MIDI_encoder_pop_byte(encoder);
+    const uint8_t non_rt_out = MIDI_encoder_pop_byte(encoder);
+
+    EXPECT_EQ(&r, 0x80 | msg.type, rt_out);
+    EXPECT_TRUE(&r,
+                ((non_rt_out & 0x80) == 0)                        // not a status byte
+                    || !MIDI_is_real_time_type(non_rt_out & 0x7f) // not a realtime status byte
+    );
+
+    putc('.', stdout);
+  }
+  printf("\n");
+
+  return r;
+}
+
 int main(void) {
   TestWithFixture tests_with_fixture[] = {
       tst_fixture,
@@ -463,6 +525,8 @@ int main(void) {
       tst_system_messages,
       tst_sysex_sequence,
       tst_sysex_sequence_with_overflow,
+      tst_realtime_priority_basic,
+      tst_realtime_priority_multi,
   };
 
   return (run_tests_with_fixture(tests_with_fixture,

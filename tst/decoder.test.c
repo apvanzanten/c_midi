@@ -29,6 +29,8 @@
 
 #define OK STAT_OK
 
+#include "test_common.h"
+
 #include "decoder.h"
 
 #define TEST_CHANNEL_1      2
@@ -352,14 +354,6 @@ static Result tst_real_time_with_running_status(void * env) {
   return r;
 }
 
-static uint8_t pitch_bend_lsb(int16_t value) {
-  return value & 0x7f; // 0b0111'1111
-}
-static uint8_t pitch_bend_msb(int16_t value) {
-  const int16_t mid_point = (0x40) << 7;
-  return ((value + mid_point) >> 7) & 0x7f; // 0b0111'1111;
-}
-
 static Result tst_real_time_prio_mode(void * env) {
   Result         r       = PASS;
   MIDI_Decoder * decoder = (MIDI_Decoder *)env;
@@ -660,13 +654,13 @@ static Result tst_multiple_msgs(void * env) {
       status_bit | MIDI_MSG_TYPE_PROGRAM_CHANGE   | TEST_CHANNEL_1_BITS,  99,
       status_bit | MIDI_MSG_TYPE_CONTROL_CHANGE   | TEST_CHANNEL_1_BITS,  MIDI_CTRL_GENERAL_A,        101,
                                                                           MIDI_CTRL_GENERAL_A_LSB,    29,
-      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(8000),  pitch_bend_msb(8000),
-      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_2_BITS,  pitch_bend_lsb(-2),    pitch_bend_msb(-2),
-      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(-5000), pitch_bend_msb(-5000),
-                                                                          pitch_bend_lsb(0),     
+      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  get_pitch_bend_lsb(8000),   get_pitch_bend_msb(8000),
+      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_2_BITS,  get_pitch_bend_lsb(-2),     get_pitch_bend_msb(-2),
+      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  get_pitch_bend_lsb(-5000),  get_pitch_bend_msb(-5000),
+                                                                          get_pitch_bend_lsb(0),     
       status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
-                                                                                                 pitch_bend_msb(0),
-                                                                          pitch_bend_lsb(5),     pitch_bend_msb(5),
+                                                                                                      get_pitch_bend_msb(0),
+                                                                          get_pitch_bend_lsb(5),      get_pitch_bend_msb(5),
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_MONO  | TEST_CHANNEL_1_BITS,
       status_bit | MIDI_MSG_TYPE_TIMING_CLOCK, 
                                                                           4,
@@ -678,14 +672,14 @@ static Result tst_multiple_msgs(void * env) {
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_POLY  | TEST_CHANNEL_1_BITS,  MIDI_NOTE_G_8, 15,
                                                                           MIDI_NOTE_G_7, 18,
                                                                           MIDI_NOTE_F_3, 88,
-      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(293),  pitch_bend_msb(293),
+      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  get_pitch_bend_lsb(293),  get_pitch_bend_msb(293),
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_POLY  | TEST_CHANNEL_2_BITS,  MIDI_NOTE_A_4, 37,
 
       status_bit | MIDI_MSG_TYPE_SONG_POSITION_POINTER,                   (0x1ABC & 0x7f), (0x1ABC >> 7),
 
-      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  pitch_bend_lsb(293),
+      status_bit | MIDI_MSG_TYPE_PITCH_BEND       | TEST_CHANNEL_1_BITS,  get_pitch_bend_lsb(293),
       status_bit | MIDI_MSG_TYPE_SYSTEM_RESET, 
-                                                                                                pitch_bend_msb(293),
+                                                                                                    get_pitch_bend_msb(293),
       status_bit | MIDI_MSG_TYPE_AFTERTOUCH_POLY  | TEST_CHANNEL_2_BITS,  MIDI_NOTE_G_4, 3,
 
       status_bit | MIDI_MSG_TYPE_MTC_QUARTER_FRAME, (MIDI_QF_TYPE_SECONDS_LOW_NIBBLE << 4) | 3,
@@ -842,7 +836,7 @@ static Result setup(void ** env_p) {
   if(HAS_FAILED(&r)) return r;
 
   // use both time and clock so we get a different seed even if we call this many times per second
-  srand(time(NULL) + clock());
+  setup_rand();
 
   MIDI_Decoder ** pars_p = (MIDI_Decoder **)env_p;
 

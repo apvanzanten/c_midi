@@ -39,7 +39,20 @@ STAT_Val MIDI_encoder_init(MIDI_Encoder * restrict encoder) {
 
   buff_init(&encoder->out_buffer);
 
-  encoder->state = ST_INIT;
+  encoder->state     = ST_INIT;
+  encoder->prio_mode = MIDI_ENCODER_PRIO_MODE_FIFO;
+
+  encoder->current_channel       = 0;
+  encoder->current_type          = MIDI_MSG_TYPE_NON_STD_NONE;
+  encoder->sysex_sequence_length = 0;
+
+  return OK;
+}
+
+STAT_Val MIDI_encoder_set_prio_mode(MIDI_Encoder * restrict encoder, MIDI_EncoderPriorityMode prio) {
+  if(encoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "encoder is NULL");
+
+  encoder->prio_mode = prio;
 
   return OK;
 }
@@ -78,7 +91,14 @@ STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message
 
   if(MIDI_is_real_time_msg(msg)) {
     // real time messages are sent immediately, as they are allowed to be interleaved with everything
-    push_byte(encoder, get_system_status_byte(msg.type));
+
+    const uint8_t byte = get_system_status_byte(msg.type);
+
+    if(encoder->prio_mode == MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST) {
+      MIDI_IMPL_encoder_buff_push(&encoder->realtime_out_buffer, byte);
+    } else {
+      MIDI_IMPL_encoder_buff_push(&encoder->out_buffer, byte);
+    }
 
     if(msg.type == MIDI_MSG_TYPE_SYSTEM_RESET) {
       encoder->state           = ST_INIT;

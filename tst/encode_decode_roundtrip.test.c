@@ -29,6 +29,8 @@
 
 #define OK STAT_OK
 
+#include "test_common.h"
+
 #include "decoder.h"
 #include "encoder.h"
 #include "note.h"
@@ -227,8 +229,6 @@ static Result tst_basic(void * env) {
   return r;
 }
 
-static MIDI_Message get_random_basic_message(void);
-
 static Result tst_basic_roundtrip_many_random(void * env) {
   Result    r       = PASS;
   Fixture * fixture = (Fixture *)env;
@@ -245,7 +245,7 @@ static Result tst_basic_roundtrip_many_random(void * env) {
   EXPECT_OK(&r, DAR_reserve(&input_arr, num_messages));
 
   for(size_t i = 0; i < num_messages; i++) {
-    const MIDI_Message msg = get_random_basic_message();
+    const MIDI_Message msg = get_rand_basic_message();
     EXPECT_OK(&r, DAR_push_back(&input_arr, &msg));
     if(HAS_FAILED(&r)) return r;
   }
@@ -278,7 +278,7 @@ static Result setup(void ** env_p) {
   EXPECT_NE(&r, NULL, env_p);
   if(HAS_FAILED(&r)) return r;
 
-  srand(time(NULL) + clock());
+  setup_rand();
 
   Fixture ** fixture = (Fixture **)env_p;
 
@@ -302,103 +302,4 @@ static Result teardown(void ** env_p) {
   *env_p = NULL;
 
   return r;
-}
-
-static uint32_t get_rand_u32(uint32_t min, uint32_t max) {
-  const int64_t range      = ((int64_t)max - (int64_t)min) + 1;
-  const double  val_double = (((double)rand() / (double)RAND_MAX) * range) + min;
-  return (uint32_t)val_double;
-}
-
-static uint8_t  get_rand_u7(void) { return get_rand_u32(0, 0x7f); }
-static uint16_t get_rand_u14(void) { return get_rand_u32(0, (1 << 14) - 1); }
-
-static int16_t get_rand_pitch_bend_value(void) {
-  const int16_t mid = (0x40 << 7);
-  return (int16_t)get_rand_u14() - mid;
-}
-
-static MIDI_Note    get_rand_note(void) { return (MIDI_Note)get_rand_u32(MIDI_NOTE_LOWEST, MIDI_NOTE_HIGHEST); }
-static MIDI_Channel get_rand_channel(void) { return get_rand_u32(1, 16); }
-
-static MIDI_MessageType get_rand_basic_msg_type(void) {
-  const MIDI_MessageType types[] = {
-      MIDI_MSG_TYPE_NOTE_OFF,
-      MIDI_MSG_TYPE_NOTE_ON,
-      MIDI_MSG_TYPE_AFTERTOUCH_POLY,
-      MIDI_MSG_TYPE_CONTROL_CHANGE,
-      MIDI_MSG_TYPE_PROGRAM_CHANGE,
-      MIDI_MSG_TYPE_AFTERTOUCH_MONO,
-      MIDI_MSG_TYPE_PITCH_BEND,
-      MIDI_MSG_TYPE_MTC_QUARTER_FRAME,
-      MIDI_MSG_TYPE_SONG_POSITION_POINTER,
-      MIDI_MSG_TYPE_SONG_SELECT,
-      MIDI_MSG_TYPE_TUNE_REQUEST,
-      MIDI_MSG_TYPE_TIMING_CLOCK,
-      MIDI_MSG_TYPE_START,
-      MIDI_MSG_TYPE_CONTINUE,
-      MIDI_MSG_TYPE_STOP,
-      MIDI_MSG_TYPE_ACTIVE_SENSING,
-  };
-
-  return types[get_rand_u32(0, (sizeof(types) / sizeof(types[0])) - 1)];
-}
-
-static MIDI_QuarterFrameType get_rand_qf_type(void) {
-  const MIDI_QuarterFrameType types[] = {
-      MIDI_QF_TYPE_FRAME_LOW_NIBBLE,
-      MIDI_QF_TYPE_FRAME_HIGH_NIBBLE,
-      MIDI_QF_TYPE_SECONDS_LOW_NIBBLE,
-      MIDI_QF_TYPE_SECONDS_HIGH_NIBBLE,
-      MIDI_QF_TYPE_MINUTES_LOW_NIBBLE,
-      MIDI_QF_TYPE_MINUTES_HIGH_NIBBLE,
-      MIDI_QF_TYPE_HOURS_LOW_NIBBLE,
-      MIDI_QF_TYPE_HOURS_HIGH_NIBBLE,
-  };
-
-  return types[get_rand_u32(0, (sizeof(types) / sizeof(types[0])) - 1)];
-}
-
-static MIDI_Message get_random_basic_message(void) {
-  // basic means no sysex and no system reset
-  MIDI_Message msg = {0};
-
-  msg.type = get_rand_basic_msg_type();
-
-  if(MIDI_is_single_byte_type(msg.type)) return msg;
-
-  if(MIDI_is_channel_type(msg.type)) msg.channel = get_rand_channel();
-
-  switch(msg.type) {
-  case MIDI_MSG_TYPE_NOTE_OFF:
-    msg.data.note_off.note     = get_rand_note();
-    msg.data.note_off.velocity = get_rand_u7();
-    break;
-  case MIDI_MSG_TYPE_NOTE_ON:
-    msg.data.note_on.note     = get_rand_note();
-    msg.data.note_on.velocity = get_rand_u7();
-    break;
-  case MIDI_MSG_TYPE_AFTERTOUCH_POLY:
-    msg.data.aftertouch_poly.note  = get_rand_note();
-    msg.data.aftertouch_poly.value = get_rand_u7();
-    break;
-  case MIDI_MSG_TYPE_CONTROL_CHANGE:
-    msg.data.control_change.control = get_rand_u7();
-    msg.data.control_change.value   = get_rand_u7();
-    break;
-  case MIDI_MSG_TYPE_PROGRAM_CHANGE: msg.data.program_change.program_id = get_rand_u7(); break;
-  case MIDI_MSG_TYPE_AFTERTOUCH_MONO: msg.data.aftertouch_mono.value = get_rand_u7(); break;
-  case MIDI_MSG_TYPE_PITCH_BEND: msg.data.pitch_bend.value = get_rand_pitch_bend_value(); break;
-  case MIDI_MSG_TYPE_MTC_QUARTER_FRAME:
-    msg.data.quarter_frame.type  = get_rand_qf_type();
-    msg.data.quarter_frame.value = get_rand_u32(0, 0xf);
-    break;
-  case MIDI_MSG_TYPE_SONG_POSITION_POINTER:
-    msg.data.song_position_pointer.value = get_rand_u32(0, get_rand_u14());
-    break;
-  case MIDI_MSG_TYPE_SONG_SELECT: msg.data.song_select.value = get_rand_u7(); break;
-  default: printf("invalid message type! %u\n", msg.type); break;
-  }
-
-  return msg;
 }
