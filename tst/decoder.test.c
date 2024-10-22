@@ -58,7 +58,7 @@ static Result tst_fixture(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
-  EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
+  EXPECT_TRUE(&r, MIDI_decoder_is_ready_to_receive(decoder));
 
   return r;
 }
@@ -386,7 +386,7 @@ static Result tst_real_time_prio_mode(void * env) {
   };
 
   for(size_t push_idx = 0; (push_idx < (sizeof(bytes) / sizeof(bytes[0]))); push_idx++) {
-    EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
+    EXPECT_TRUE(&r, MIDI_decoder_is_ready_to_receive(decoder));
     EXPECT_EQ(&r, OK, MIDI_decoder_push_byte(decoder, bytes[push_idx]));
     if(HAS_FAILED(&r)) return r;
   }
@@ -878,7 +878,7 @@ static void check_input_and_output(Result *             r_ptr,
   size_t input_idx = 0;
 
   for(size_t output_idx = 0; output_idx < expect_output_n; output_idx++) {
-    for(; (input_idx < input_n) && MIDI_decoder_is_ready(decoder); input_idx++) {
+    for(; (input_idx < input_n) && MIDI_decoder_is_ready_to_receive(decoder); input_idx++) {
       EXPECT_EQ(r_ptr, OK, MIDI_decoder_push_byte(decoder, input[input_idx]));
       if(HAS_FAILED(r_ptr)) return;
     }

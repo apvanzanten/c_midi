@@ -44,7 +44,7 @@ static Result tst_fixture(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_FALSE(&r, MIDI_encoder_has_output(encoder));
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   return r;
 }
@@ -60,7 +60,7 @@ static void expect_output_given_input(Result *             r_ptr,
   size_t output_idx = 0;
 
   while(output_idx < output_n) {
-    while((input_idx < input_n) && MIDI_encoder_is_ready(encoder)) {
+    while((input_idx < input_n) && MIDI_encoder_is_ready_to_receive(encoder)) {
       EXPECT_OK(r_ptr, MIDI_encoder_push_message(encoder, input[input_idx++]));
     }
 
@@ -93,7 +93,7 @@ static Result tst_note_on_off(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       {.type = MIDI_MSG_TYPE_NOTE_OFF, .channel = 2, .data.note_off = {.note = MIDI_NOTE_A_2, .velocity = 100}},
@@ -136,7 +136,7 @@ static Result tst_channel_messages(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       // clang-format off
@@ -205,7 +205,7 @@ static Result tst_realtime_messages(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       // clang-format off
@@ -244,7 +244,7 @@ static Result tst_channel_messages_with_realtime_interruptions(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       // clang-format off
@@ -317,7 +317,7 @@ static Result tst_system_messages(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       // clang-format off
@@ -365,7 +365,7 @@ static Result tst_sysex_sequence(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const MIDI_Message input[] = {
       {.type = MIDI_MSG_TYPE_SYSEX_START},
@@ -403,7 +403,7 @@ static Result tst_sysex_sequence_with_overflow(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   const size_t  sequence_length = 50000;
   const uint8_t start_byte      = 0x80 | MIDI_MSG_TYPE_SYSEX_START;
@@ -450,7 +450,7 @@ static Result tst_realtime_priority_basic(void * env) {
   Result         r       = PASS;
   MIDI_Encoder * encoder = (MIDI_Encoder *)env;
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   EXPECT_OK(&r, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST));
 
@@ -473,25 +473,25 @@ static Result tst_realtime_priority_multi(void * env) {
 
   EXPECT_OK(&r, MIDI_encoder_set_prio_mode(encoder, MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST));
 
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   // fill up buffer with non-realtime messages, pop until ready, then push some realtime messages
   // they should all come in before remaining non-realtime messages
 
   printf("%s", __func__);
 
-  while(MIDI_encoder_is_ready(encoder)) {
+  while(MIDI_encoder_is_ready_to_receive(encoder)) {
     EXPECT_OK(&r, MIDI_encoder_push_message(encoder, get_rand_basic_non_realtime_message()));
     putc('.', stdout);
   }
   putc(' ', stdout);
-  while(!MIDI_encoder_is_ready(encoder)) {
+  while(!MIDI_encoder_is_ready_to_receive(encoder)) {
     MIDI_encoder_pop_byte(encoder);
     putc('.', stdout);
   }
   putc(' ', stdout);
   while(MIDI_encoder_has_output(encoder)) {
-    EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+    EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
     const MIDI_Message msg = get_rand_basic_realtime_message();
 

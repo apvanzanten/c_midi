@@ -70,7 +70,7 @@ STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte);
 static inline bool         MIDI_decoder_has_output(const MIDI_Decoder * restrict decoder);
 static inline MIDI_Message MIDI_decoder_peek_msg(const MIDI_Decoder * restrict decoder);
 static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder);
-static inline bool         MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder);
+static inline bool         MIDI_decoder_is_ready_to_receive(const MIDI_Decoder * restrict decoder);
 
 static inline bool         MIDI_IMPL_decoder_buff_is_empty(const MIDI_MsgBuffer * restrict buffer);
 static inline bool         MIDI_IMPL_decoder_buff_is_full(const MIDI_MsgBuffer * restrict buffer);
@@ -103,7 +103,7 @@ static inline MIDI_Message MIDI_decoder_pop_msg(MIDI_Decoder * restrict decoder)
   return MIDI_IMPL_decoder_buff_pop(&(decoder->msg_buffer));
 }
 
-static inline bool MIDI_decoder_is_ready(const MIDI_Decoder * restrict decoder) {
+static inline bool MIDI_decoder_is_ready_to_receive(const MIDI_Decoder * restrict decoder) {
   return (decoder != NULL) &&
          (MIDI_IMPL_decoder_buff_get_space_available(&decoder->msg_buffer) >=
           MIDI_DECODER_MAX_GENERATED_MESSAGES_PER_BYTE) &&
@@ -117,6 +117,7 @@ static inline bool MIDI_IMPL_decoder_buff_is_full(const MIDI_MsgBuffer * restric
 
 static inline uint8_t MIDI_IMPL_decoder_buff_get_size(const MIDI_MsgBuffer * restrict buffer) {
   if(MIDI_IMPL_decoder_buff_is_empty(buffer)) return 0;
+  if(buffer->begin_idx < buffer->end_idx) return buffer->end_idx - buffer->begin_idx;
   return ((MIDI_DECODER_OUT_BUFFER_CAPACITY - buffer->begin_idx) + buffer->end_idx);
 }
 

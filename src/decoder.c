@@ -119,7 +119,7 @@ STAT_Val MIDI_decoder_set_prio_mode(MIDI_Decoder * restrict decoder, MIDI_Decode
 
 STAT_Val MIDI_decoder_push_byte(MIDI_Decoder * restrict decoder, uint8_t byte) {
   if(decoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "decoder pointer is NULL");
-  if(!MIDI_decoder_is_ready(decoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "decoder not ready");
+  if(!MIDI_decoder_is_ready_to_receive(decoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "decoder not ready");
 
   LOG(decoder, byte, "func entry");
 

@@ -85,7 +85,7 @@ static uint8_t make_song_position_pointer_msb(MIDI_SongPositionPointer spp) { re
 
 STAT_Val MIDI_encoder_push_message(MIDI_Encoder * restrict encoder, MIDI_Message msg) {
   if(encoder == NULL) return LOG_STAT(STAT_ERR_ARGS, "encoder is NULL");
-  if(!MIDI_encoder_is_ready(encoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "encoder not ready");
+  if(!MIDI_encoder_is_ready_to_receive(encoder)) return LOG_STAT(STAT_ERR_PRECONDITION, "encoder not ready");
 
   bool msg_finished = false;
 

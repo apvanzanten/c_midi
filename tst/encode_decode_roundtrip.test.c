@@ -33,6 +33,7 @@
 
 #include "decoder.h"
 #include "encoder.h"
+#include "message.h"
 #include "note.h"
 
 typedef struct Fixture {
@@ -47,56 +48,135 @@ static void expect_same_messages_across_roundtrip(Result *       r_ptr,
                                                   const char *   tst_name,
                                                   MIDI_Encoder * encoder,
                                                   MIDI_Decoder * decoder,
-                                                  DAR_DArray *   input_msgs) {
+                                                  DAR_DArray *   input_msgs,
+                                                  bool           is_verbose) {
+  DAR_DArray bytes = {0};
+  EXPECT_OK(r_ptr, DAR_create(&bytes, sizeof(uint8_t)));
 
-#define ASSERT_NOT_FAILED()                                                                                            \
+  DAR_DArray output = {0};
+  EXPECT_OK(r_ptr, DAR_create(&output, sizeof(MIDI_Message)));
+
+#define REPORT_AND_RETURN()                                                                                            \
   do {                                                                                                                 \
-    if(HAS_FAILED(r_ptr)) {                                                                                            \
-      printf("%s failed on line %d\n", tst_name, __LINE__);                                                            \
-      char in_str[1024] = {0};                                                                                         \
-      MIDI_message_to_str_buffer(in_str, 1024, *in_msg);                                                               \
-      printf("current message: %s\n", in_str);                                                                         \
-      return;                                                                                                          \
-    }                                                                                                                  \
+    printf("%s fail\n", tst_name);                                                                                     \
+    DAR_destroy(&bytes);                                                                                               \
+    DAR_destroy(&output);                                                                                              \
+    return;                                                                                                            \
   } while(false)
 
-  for(const MIDI_Message * in_msg = DAR_first(input_msgs); in_msg != DAR_end(input_msgs); in_msg++) {
-    EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
-    EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready(encoder));
-    EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
-    EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready(decoder));
-    ASSERT_NOT_FAILED();
+  size_t encode_idx = 0;
+  size_t decode_idx = 0;
 
-    EXPECT_OK(r_ptr, MIDI_encoder_push_message(encoder, *in_msg));
-    ASSERT_NOT_FAILED();
+  while((output.size < input_msgs->size) && !HAS_FAILED(r_ptr)) {
+    if((encode_idx < input_msgs->size) && MIDI_encoder_is_ready_to_receive(encoder)) {
+      const MIDI_Message msg = *((MIDI_Message *)DAR_get(input_msgs, encode_idx));
+      EXPECT_OK(r_ptr, MIDI_encoder_push_message(encoder, msg));
+      encode_idx++;
 
-    while(MIDI_encoder_has_output(encoder)) {
-      EXPECT_OK(r_ptr, MIDI_decoder_push_byte(decoder, MIDI_encoder_pop_byte(encoder)));
-      ASSERT_NOT_FAILED();
+      if(is_verbose) {
+        char str[64] = "";
+        MIDI_message_to_str_buffer_short(str, 64, msg);
+        printf("in   %s (%zu out of %zu)\n", str, encode_idx, input_msgs->size);
+      }
+
+    } else if((decode_idx < bytes.size) && MIDI_decoder_is_ready_to_receive(decoder)) {
+      const uint8_t byte = *((uint8_t *)DAR_get(&bytes, decode_idx));
+      EXPECT_OK(r_ptr, MIDI_decoder_push_byte(decoder, byte));
+      decode_idx++;
+
+    } else if(MIDI_encoder_has_output(encoder)) {
+      const uint8_t byte = MIDI_encoder_pop_byte(encoder);
+      EXPECT_OK(r_ptr, DAR_push_back(&bytes, &byte));
+
+      // if(is_verbose) printf("pop  0x%x/0d%u (%zu)\n", byte, byte, bytes.size);
+      if(is_verbose) {
+        printf("byte 0x%x/0d%u %s (%zu)\n",
+               byte,
+               byte,
+               (0x80 & byte) ? (((byte & 0x7f) > 0x60) ? MIDI_message_type_to_str(byte & 0x7f)
+                                                       : MIDI_message_type_to_str(byte & 0x70))
+                             : "",
+               bytes.size);
+      }
+
+    } else if(MIDI_decoder_has_output(decoder)) {
+      const MIDI_Message msg = MIDI_decoder_pop_msg(decoder);
+      EXPECT_OK(r_ptr, DAR_push_back(&output, &msg));
+
+      if(is_verbose) {
+        char str[64] = "";
+        MIDI_message_to_str_buffer_short(str, 64, msg);
+        printf("out  %s (%zu out of %zu)\n", str, output.size, input_msgs->size);
+      }
+
+    } else {
+      EXPECT_FALSE(r_ptr, true);
+      printf("encoded %zu/%zu, decoded %zu/%zu, roundtripped %zu/%zu\n",
+             encode_idx,
+             input_msgs->size,
+             decode_idx,
+             bytes.size,
+             output.size,
+             input_msgs->size);
     }
-
-    EXPECT_TRUE(r_ptr, MIDI_decoder_has_output(decoder));
-    ASSERT_NOT_FAILED();
-
-    const MIDI_Message out_msg = MIDI_decoder_pop_msg(decoder);
-    EXPECT_TRUE(r_ptr, MIDI_message_equals(*in_msg, out_msg));
-
-    if(HAS_FAILED(r_ptr)) {
-      char in_str[1024]  = {0};
-      char out_str[1024] = {0};
-
-      MIDI_message_to_str_buffer(in_str, 1024, *in_msg);
-      MIDI_message_to_str_buffer(out_str, 1024, out_msg);
-
-      printf("unequal messages encountered in %s. in: %s, out: %s\n", tst_name, in_str, out_str);
-      return;
-    }
-
-    EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
-    ASSERT_NOT_FAILED();
+    if(HAS_FAILED(r_ptr)) REPORT_AND_RETURN();
   }
 
-#undef ASSERT_NOT_FAILED
+  EXPECT_EQ(r_ptr, output.size, input_msgs->size);
+
+  EXPECT_TRUE(r_ptr, MIDI_decoder_is_ready_to_receive(decoder));
+  EXPECT_TRUE(r_ptr, MIDI_encoder_is_ready_to_receive(encoder));
+  EXPECT_FALSE(r_ptr, MIDI_decoder_has_output(decoder));
+  EXPECT_FALSE(r_ptr, MIDI_encoder_has_output(encoder));
+
+  if(HAS_FAILED(r_ptr)) REPORT_AND_RETURN();
+
+  // check presence and order of realtime and non-realtime messages
+  {
+    size_t last_non_rt_idx = 0;
+    size_t last_rt_idx     = 0;
+    size_t non_rt_count    = 0;
+    size_t rt_count        = 0;
+
+    for(size_t in_idx = 0; in_idx < input_msgs->size; in_idx++) {
+      const MIDI_Message in_msg = *(MIDI_Message *)DAR_get(input_msgs, in_idx);
+
+      if(is_verbose) {
+        char str[64] = "";
+        MIDI_message_to_str_buffer_short(str, 64, in_msg);
+        printf("%s (#%zu): ", str, in_idx);
+      }
+
+      if(MIDI_is_real_time_msg(in_msg)) {
+        for(size_t out_idx = (in_idx == 0) ? 0 : last_rt_idx + 1; out_idx < output.size; out_idx++) {
+          const MIDI_Message msg = *((MIDI_Message *)DAR_get(&output, out_idx));
+
+          if(MIDI_message_equals(msg, in_msg)) {
+            last_rt_idx = out_idx;
+            rt_count++;
+            if(is_verbose) printf("rt #%zu at %zu", rt_count, out_idx);
+            break;
+          }
+        }
+      } else {
+        for(size_t out_idx = (in_idx == 0) ? 0 : last_non_rt_idx + 1; out_idx < output.size; out_idx++) {
+          const MIDI_Message msg = *((MIDI_Message *)DAR_get(&output, out_idx));
+
+          if(MIDI_message_equals(msg, in_msg)) {
+            last_non_rt_idx = out_idx;
+            non_rt_count++;
+            if(is_verbose) printf("non-rt #%zu at %zu", non_rt_count, out_idx);
+            break;
+          }
+        }
+      }
+      if(is_verbose) printf("\n");
+    }
+    EXPECT_EQ(r_ptr, input_msgs->size, non_rt_count + rt_count);
+  }
+
+  EXPECT_OK(r_ptr, DAR_destroy(&bytes));
+  EXPECT_OK(r_ptr, DAR_destroy(&output));
 }
 
 static Result tst_fixture(void * env) {
@@ -113,10 +193,10 @@ static Result tst_fixture(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_FALSE(&r, MIDI_encoder_has_output(encoder));
-  EXPECT_TRUE(&r, MIDI_encoder_is_ready(encoder));
+  EXPECT_TRUE(&r, MIDI_encoder_is_ready_to_receive(encoder));
 
   EXPECT_FALSE(&r, MIDI_decoder_has_output(decoder));
-  EXPECT_TRUE(&r, MIDI_decoder_is_ready(decoder));
+  EXPECT_TRUE(&r, MIDI_decoder_is_ready_to_receive(decoder));
 
   return r;
 }
@@ -222,7 +302,7 @@ static Result tst_basic(void * env) {
                                             .element_size = sizeof(msgs[0]),
                                             .len          = (sizeof(msgs) / sizeof(msgs[0]))}));
 
-  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr);
+  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr, false);
 
   EXPECT_OK(&r, DAR_destroy(&input_arr));
 
@@ -250,7 +330,7 @@ static Result tst_basic_roundtrip_many_random(void * env) {
     if(HAS_FAILED(&r)) return r;
   }
 
-  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr);
+  expect_same_messages_across_roundtrip(&r, __func__, encoder, decoder, &input_arr, false);
 
   EXPECT_OK(&r, DAR_destroy(&input_arr));
 

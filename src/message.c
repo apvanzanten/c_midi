@@ -334,6 +334,8 @@ int MIDI_message_to_str_buffer_short(char * str, int max_len, MIDI_Message msg) 
     case MIDI_MSG_TYPE_ACTIVE_SENSING: len += snprintf(&str[len], (max_len - len), "ASENS"); break;
     case MIDI_MSG_TYPE_SYSTEM_RESET: len += snprintf(&str[len], (max_len - len), "RESET"); break;
     case MIDI_MSG_TYPE_SYSEX_START: len += snprintf(&str[len], (max_len - len), "SSX_START"); break;
+    case MIDI_MSG_TYPE_TUNE_REQUEST: len += snprintf(&str[len], (max_len - len), "TUNE"); break;
+    case MIDI_MSG_TYPE_NON_STD_NONE: len += snprintf(&str[len], (max_len - len), "NONE"); break;
     default: len += snprintf(&str[len], (max_len - len), "??"); break;
     }
   }
