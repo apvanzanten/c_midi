@@ -146,9 +146,11 @@ typedef struct MIDI_SysexStop {
 } MIDI_SysexStop;
 
 typedef struct MIDI_Message {
-  uint8_t      type;         // value of MIDI_MessageType
-  MIDI_Channel channel : 5;  // [1,16]
-  uint8_t      reserved : 3; // reserved for future use, may come in handy
+  uint8_t      type;        // value of MIDI_MessageType
+  MIDI_Channel channel : 5; // [1,16]
+  uint8_t user_data : 3; // reserved for any kind of 'user' data, i.e. extra data that the user of this library can add
+                         // to a message, that none of this library will look at (NOTE also not included in equals
+                         // function)
 
   union {
     MIDI_NoteOff             note_off;
