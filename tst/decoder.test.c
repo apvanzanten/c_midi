@@ -33,11 +33,11 @@
 
 #include "decoder.h"
 
-#define TEST_CHANNEL_1      2
-#define TEST_CHANNEL_1_BITS (TEST_CHANNEL_1 - 1)
+constexpr uint8_t TEST_CHANNEL_1      = 2;
+constexpr uint8_t TEST_CHANNEL_1_BITS = (TEST_CHANNEL_1 - 1);
 
-#define TEST_CHANNEL_2      3
-#define TEST_CHANNEL_2_BITS (TEST_CHANNEL_2 - 1)
+constexpr uint8_t TEST_CHANNEL_2      = 3;
+constexpr uint8_t TEST_CHANNEL_2_BITS = (TEST_CHANNEL_2 - 1);
 
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);

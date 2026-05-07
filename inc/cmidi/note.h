@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum MIDI_Note {
+typedef enum MIDI_Note : uint8_t {
   // clang-format off
   MIDI_NOTE_C_N1 = 0,
   MIDI_NOTE_D_B_N1, MIDI_NOTE_D_N1,
@@ -103,14 +103,12 @@ typedef enum MIDI_Note {
   // clang-format on
 } MIDI_Note;
 
-#define MIDI_NOTE_LOWEST  (MIDI_NOTE_C_N1)
-#define MIDI_NOTE_HIGHEST (MIDI_NOTE_G_9)
-#define MIDI_NOTE_BEGIN   (MIDI_NOTE_LOWEST)
-#define MIDI_NOTE_END     (MIDI_NOTE_HIGHEST + 1),
+constexpr MIDI_Note MIDI_NOTE_LOWEST  = (MIDI_NOTE_C_N1);
+constexpr MIDI_Note MIDI_NOTE_HIGHEST = (MIDI_NOTE_G_9);
 
-static inline uint8_t MIDI_note_to_byte(MIDI_Note n) { return (uint8_t)n; }
-static inline uint8_t MIDI_byte_to_note(uint8_t u) { return (MIDI_Note)u; }
-static inline int8_t  MIDI_note_difference(MIDI_Note a, MIDI_Note b) {
+static inline uint8_t   MIDI_note_to_byte(MIDI_Note n) { return (uint8_t)n; }
+static inline MIDI_Note MIDI_byte_to_note(uint8_t u) { return (MIDI_Note)u; }
+static inline int8_t    MIDI_note_difference(MIDI_Note a, MIDI_Note b) {
   return MIDI_note_to_byte(b) - MIDI_note_to_byte(a);
 }
 

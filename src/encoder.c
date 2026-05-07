@@ -23,7 +23,7 @@
 
 #define OK STAT_OK
 
-typedef enum StateIdx {
+typedef enum StateIdx : uint8_t {
   ST_INIT,
   ST_RUNNING_STATUS,
   ST_SYSTEM_MESSAGE_STARTED,

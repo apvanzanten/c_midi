@@ -27,9 +27,8 @@
 
 #include <cfac/stat.h>
 
-#define MIDI_ENCODER_OUT_BUFFER_CAPACITY 32
-
-#define MIDI_ENCODER_MAX_GENERATED_BYTES_PER_MESSAGE 3
+constexpr size_t MIDI_ENCODER_OUT_BUFFER_CAPACITY             = 32;
+constexpr size_t MIDI_ENCODER_MAX_GENERATED_BYTES_PER_MESSAGE = 3;
 
 typedef struct MIDI_ByteBuffer {
   uint8_t data[MIDI_ENCODER_OUT_BUFFER_CAPACITY];
@@ -38,7 +37,7 @@ typedef struct MIDI_ByteBuffer {
   bool    is_full;
 } MIDI_ByteBuffer;
 
-typedef enum MIDI_EncoderPriorityMode {
+typedef enum MIDI_EncoderPriorityMode : uint8_t {
   MIDI_ENCODER_PRIO_MODE_FIFO,
   MIDI_ENCODER_PRIO_MODE_REALTIME_FIRST,
 } MIDI_EncoderPriorityMode;

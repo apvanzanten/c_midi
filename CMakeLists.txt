@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24) # this is the version I use, it may well be compatible with lower ones
+cmake_minimum_required(VERSION 3.27)
 project(c_midi)
 
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
@@ -6,7 +6,7 @@ set(TST_DIR ${PROJECT_SOURCE_DIR}/tst)
 set(INC_DIR ${PROJECT_SOURCE_DIR}/inc/cmidi)
 set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 
 # --- fetch c facilities ---
 include(FetchContent)

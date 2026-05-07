@@ -25,7 +25,7 @@
 
 #define LOGGING_ENABLED 0
 
-typedef enum StateIdx {
+typedef enum StateIdx : uint8_t {
   ST_INIT,
   ST_RUNNING_NOTE_ON,
   ST_NOTE_ON_WITH_VALID_NOTE,

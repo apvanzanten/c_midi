@@ -26,7 +26,7 @@
 #include "control.h"
 #include "note.h"
 
-typedef enum MIDI_MessageType {
+typedef enum MIDI_MessageType : uint8_t {
   // NOTE values of 0x7f and below are standard MIDI types, above are extensions specific to this library, for the
   // purpose of splitting up SYSEX sequences into separate (fixed size) messages.
 
@@ -72,18 +72,18 @@ static inline bool         MIDI_is_single_byte_type(MIDI_MessageType type);
 static inline bool         MIDI_is_non_standard_type(MIDI_MessageType type);
 
 typedef struct MIDI_NoteOff {
-  uint8_t note; // value of MIDI_Note
-  uint8_t velocity;
+  MIDI_Note note;
+  uint8_t   velocity;
 } MIDI_NoteOff;
 
 typedef struct MIDI_NoteOn {
-  uint8_t note; // value of MIDI_Note
-  uint8_t velocity;
+  MIDI_Note note;
+  uint8_t   velocity;
 } MIDI_NoteOn;
 
 typedef struct MIDI_ControlChange {
-  uint8_t control; // value of MIDI_Note
-  uint8_t value;
+  MIDI_Control control;
+  uint8_t      value;
 } MIDI_ControlChange;
 
 typedef struct MIDI_ProgramChange {
@@ -99,13 +99,13 @@ typedef struct MIDI_AftertouchMono {
 } MIDI_AftertouchMono;
 
 typedef struct MIDI_AftertouchPoly {
-  uint8_t note; // value of MIDI_Note
-  uint8_t value;
+  MIDI_Note note;
+  uint8_t   value;
 } MIDI_AftertouchPoly;
 
 typedef uint8_t MIDI_Channel;
 
-typedef enum MIDI_QuarterFrameType {
+typedef enum MIDI_QuarterFrameType : uint8_t {
   MIDI_QF_TYPE_FRAME_LOW_NIBBLE = 0,
   MIDI_QF_TYPE_FRAME_HIGH_NIBBLE,
   MIDI_QF_TYPE_SECONDS_LOW_NIBBLE,
@@ -119,8 +119,8 @@ typedef enum MIDI_QuarterFrameType {
 static inline const char * MIDI_quarter_frame_type_to_str(MIDI_QuarterFrameType type);
 
 typedef struct MIDI_QuarterFrame {
-  uint8_t type : 4; // value of MIDI_QuarterFrameType
-  uint8_t value : 4;
+  MIDI_QuarterFrameType type : 4; // value of MIDI_QuarterFrameType
+  uint8_t               value : 4;
 } MIDI_QuarterFrame;
 
 typedef struct MIDI_SongPositionPointer {
@@ -132,7 +132,6 @@ typedef struct MIDI_SongSelect {
 } MIDI_SongSelect;
 
 typedef struct MIDI_SysexByte {
-
   uint16_t sequence_number : 9; // NOTE may roll over, don't use as index unless you're sure sequence is <=512 in length
   uint16_t byte : 7;            // NOTE using uint16_t instead of uint8_t to ensure desired packing behaviour
 } MIDI_SysexByte;
@@ -146,8 +145,8 @@ typedef struct MIDI_SysexStop {
 } MIDI_SysexStop;
 
 typedef struct MIDI_Message {
-  uint8_t      type;        // value of MIDI_MessageType
-  MIDI_Channel channel : 5; // [1,16]
+  MIDI_MessageType type;
+  MIDI_Channel     channel : 5; // [1,16]
   uint8_t user_data : 3; // reserved for any kind of 'user' data, i.e. extra data that the user of this library can add
                          // to a message, that none of this library will look at (NOTE also not included in equals
                          // function)

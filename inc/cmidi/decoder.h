@@ -27,11 +27,11 @@
 
 #include <cfac/stat.h>
 
-#define MIDI_DECODER_OUT_BUFFER_CAPACITY 16
+constexpr size_t MIDI_DECODER_OUT_BUFFER_CAPACITY = 16;
 
 /* if a non-sysex non-realtime byte comes in during a sysex sequence, a sysex stop msg will be inserted, resulting in 2
  * messages generated for just 1 byte  */
-#define MIDI_DECODER_MAX_GENERATED_MESSAGES_PER_BYTE 2
+constexpr size_t MIDI_DECODER_MAX_GENERATED_MESSAGES_PER_BYTE = 2;
 
 typedef struct MIDI_MsgBuffer {
   MIDI_Message data[MIDI_DECODER_OUT_BUFFER_CAPACITY];
@@ -40,7 +40,7 @@ typedef struct MIDI_MsgBuffer {
   bool         is_full;
 } MIDI_MsgBuffer;
 
-typedef enum MIDI_DecoderPriorityMode {
+typedef enum MIDI_DecoderPriorityMode : uint8_t {
   MIDI_DECODER_PRIO_MODE_FIFO = 0,
   MIDI_DECODER_PRIO_MODE_REALTIME_FIRST,
 } MIDI_DecoderPriorityMode;
