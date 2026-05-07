@@ -31,7 +31,7 @@
 static Result tst_size(void) {
   Result r = PASS;
 
-  EXPECT_EQ(&r, sizeof(MIDI_Note), 4);
+  EXPECT_EQ(&r, sizeof(MIDI_Note), 1);
 
   return r;
 }

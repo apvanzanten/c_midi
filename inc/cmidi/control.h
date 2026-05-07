@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-typedef enum MIDI_Control {
+typedef enum MIDI_Control : uint8_t {
   MIDI_CTRL_BANK_SELECT = 0,
   MIDI_CTRL_MOD_WHEEL,
   MIDI_CTRL_BREATH_CONTROL,

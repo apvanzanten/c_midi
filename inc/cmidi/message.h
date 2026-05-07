@@ -25,7 +25,7 @@
 #include "control.h"
 #include "note.h"
 
-typedef enum MIDI_MessageType {
+typedef enum MIDI_MessageType : uint8_t {
   MIDI_MSG_TYPE_NOTE_OFF = 0,
   MIDI_MSG_TYPE_NOTE_ON,
   MIDI_MSG_TYPE_AFTERTOUCH_POLY,
@@ -39,17 +39,17 @@ typedef enum MIDI_MessageType {
 static inline uint8_t MIDI_type_to_byte(MIDI_MessageType type) { return (uint8_t)type; }
 
 typedef struct MIDI_NoteOff {
-  uint8_t note; // MIDI_Note
+  MIDI_Note note;
   uint8_t velocity;
 } MIDI_NoteOff;
 
 typedef struct MIDI_NoteOn {
-  uint8_t note; // MIDI_Note
+  MIDI_Note note;
   uint8_t velocity;
 } MIDI_NoteOn;
 
 typedef struct MIDI_ControlChange {
-  uint8_t control; // MIDI_ControlType
+  MIDI_Control control;
   uint8_t value;
 } MIDI_ControlChange;
 
@@ -58,7 +58,7 @@ typedef struct MIDI_PitchBend {
 } MIDI_PitchBend;
 
 typedef struct MIDI_Message {
-  uint8_t type; // MIDI_MessageType
+  MIDI_MessageType type; // MIDI_MessageType
   union {
     MIDI_NoteOff       note_off;
     MIDI_NoteOn        note_on;
@@ -66,6 +66,7 @@ typedef struct MIDI_Message {
     MIDI_PitchBend     pitch_bend;
   } data;
 } MIDI_Message;
+static_assert(sizeof(MIDI_Message) <= 4);
 
 static inline const char * MIDI_message_type_to_str(MIDI_MessageType t) {
   switch(t) {

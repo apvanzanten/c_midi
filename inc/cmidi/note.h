@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum MIDI_Note {
+typedef enum MIDI_Note : uint8_t {
   // clang-format off
   MIDI_NOTE_C_N1 = 0,
   MIDI_NOTE_D_B_N1, MIDI_NOTE_D_N1,
