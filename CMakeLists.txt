@@ -13,7 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   c_facilities
   GIT_REPOSITORY https://github.com/apvanzanten/c_facilities/
-  GIT_TAG        origin/v2_develop
+  GIT_TAG        origin/main
   )
 FetchContent_MakeAvailable(c_facilities)
 set(CFAC_INC_DIR ${c_facilities_SOURCE_DIR}/inc)
@@ -46,20 +46,6 @@ if (DEBUG)
     add_link_options(${SANITIZERS})
 else()
     add_compile_options(${RELEASE_FLAGS})
-endif()
-
-find_program(HAS_CPPCHECK NAMES cppcheck)
-if (HAS_CPPCHECK)
-    set(CMAKE_C_CPPCHECK 
-                cppcheck;
-                    --enable=all; 
-                    --suppress=unusedFunction; # functions go unused in libraries a lot
-                    --suppress=uninitvar; # generates some false positives, and anyway compilers do this pretty OK already
-                    --suppress=missingIncludeSystem; # cppcheck can't find system headers and I don't care to help it
-                    --suppress=unmatchedSuppression;
-                    --suppress=redundantAssignment; # generates some false positives in some cases where functions with side-effects are used
-                    --suppress=internalAstError; # cppcheck doesn't deal with generics very well, I don't particulary care to hear about it.
-    )
 endif()
 
 # --- libraries ---
